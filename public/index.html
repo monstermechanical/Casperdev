@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casperdev - Secure Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .logo p {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .form-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .form-toggle a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .error {
+            background: #fee;
+            color: #c53030;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #fbb;
+        }
+
+        .success {
+            background: #f0fff4;
+            color: #22543d;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #c6f6d5;
+        }
+
+        .security-info {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .security-info h4 {
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .security-info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .security-info li {
+            color: #718096;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .security-info li::before {
+            content: "✅ ";
+            margin-right: 0.5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .mfa-section {
+            text-align: center;
+        }
+
+        .qr-code {
+            margin: 1rem 0;
+        }
+
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            width: 0%;
+            background: #e53e3e;
+        }
+
+        .strength-fill.weak { background: #e53e3e; }
+        .strength-fill.fair { background: #ed8936; }
+        .strength-fill.good { background: #48bb78; }
+        .strength-fill.strong { background: #38a169; }
+
+        .user-profile {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .user-info {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .logout-btn {
+            background: #e53e3e;
+            margin-top: 1rem;
+        }
+
+        .logout-btn:hover {
+            background: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🔐 Casperdev</h1>
+            <p>Secure Authentication System</p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="form-section">
+            <div id="message"></div>
+            
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" name="email" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password">
+                </div>
+                
+                <div class="form-group hidden" id="mfaGroup">
+                    <label for="mfaToken">Two-Factor Authentication Code</label>
+                    <input type="text" id="mfaToken" name="mfaToken" maxlength="6" placeholder="Enter 6-digit code">
+                </div>
+                
+                <button type="submit" class="btn" id="loginBtn">Sign In</button>
+            </form>
+            
+            <div class="form-toggle">
+                <p>Don't have an account? <a href="#" id="showRegister">Create one</a></p>
+                <p><a href="#" id="showForgotPassword">Forgot your password?</a></p>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <div id="registerForm" class="form-section hidden">
+            <div id="registerMessage"></div>
+            
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" name="username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">Email Address</label>
+                    <input type="email" id="registerEmail" name="email" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" required autocomplete="new-password">
+                    <div class="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <small id="strengthText">Password strength will appear here</small>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn" id="registerBtn">Create Account</button>
+            </form>
+            
+            <div class="form-toggle">
+                <p>Already have an account? <a href="#" id="showLogin">Sign in</a></p>
+            </div>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="forgotPasswordForm" class="form-section hidden">
+            <div id="forgotMessage"></div>
+            
+            <form id="forgotPasswordFormElement">
+                <div class="form-group">
+                    <label for="forgotEmail">Email Address</label>
+                    <input type="email" id="forgotEmail" name="email" required>
+                </div>
+                
+                <button type="submit" class="btn">Reset Password</button>
+            </form>
+            
+            <div class="form-toggle">
+                <p><a href="#" id="backToLogin">Back to Sign In</a></p>
+            </div>
+        </div>
+
+        <!-- MFA Setup Form -->
+        <div id="mfaSetupForm" class="form-section hidden">
+            <div id="mfaMessage"></div>
+            
+            <div class="mfa-section">
+                <h3>Set Up Two-Factor Authentication</h3>
+                <p>Scan this QR code with your authenticator app:</p>
+                
+                <div class="qr-code" id="qrCodeContainer"></div>
+                
+                <form id="mfaSetupFormElement">
+                    <div class="form-group">
+                        <label for="setupMfaToken">Enter verification code</label>
+                        <input type="text" id="setupMfaToken" maxlength="6" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">Verify & Enable</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Profile -->
+        <div id="userProfile" class="form-section hidden">
+            <div class="user-profile">
+                <h2>Welcome!</h2>
+                <div class="user-info" id="userInfo"></div>
+                <button class="btn logout-btn" id="logoutBtn">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Security Features Info -->
+        <div class="security-info">
+            <h4>🛡️ Security Features</h4>
+            <ul>
+                <li>Bcrypt password hashing</li>
+                <li>Rate limiting & brute force protection</li>
+                <li>Two-factor authentication</li>
+                <li>Secure session management</li>
+                <li>Input validation & sanitization</li>
+                <li>CSRF protection</li>
+                <li>Security headers (HSTS, CSP)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class SecureAuth {
+            constructor() {
+                this.baseURL = '/api';
+                this.currentUser = null;
+                this.mfaRequired = false;
+                this.setupRequired = false;
+                this.bindEvents();
+                this.checkAuthStatus();
+            }
+
+            bindEvents() {
+                // Form submissions
+                document.getElementById('loginFormElement').addEventListener('submit', (e) => this.handleLogin(e));
+                document.getElementById('registerFormElement').addEventListener('submit', (e) => this.handleRegister(e));
+                document.getElementById('forgotPasswordFormElement').addEventListener('submit', (e) => this.handleForgotPassword(e));
+                document.getElementById('mfaSetupFormElement').addEventListener('submit', (e) => this.handleMfaSetup(e));
+                
+                // Form toggles
+                document.getElementById('showRegister').addEventListener('click', (e) => this.showForm(e, 'register'));
+                document.getElementById('showLogin').addEventListener('click', (e) => this.showForm(e, 'login'));
+                document.getElementById('showForgotPassword').addEventListener('click', (e) => this.showForm(e, 'forgotPassword'));
+                document.getElementById('backToLogin').addEventListener('click', (e) => this.showForm(e, 'login'));
+                
+                // Password strength
+                document.getElementById('registerPassword').addEventListener('input', (e) => this.checkPasswordStrength(e));
+                
+                // Logout
+                document.getElementById('logoutBtn').addEventListener('click', () => this.handleLogout());
+            }
+
+            async makeRequest(endpoint, options = {}) {
+                try {
+                    const response = await fetch(`${this.baseURL}${endpoint}`, {
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        ...options
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Request failed');
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    console.error('Request error:', error);
+                    throw error;
+                }
+            }
+
+            showMessage(elementId, message, type = 'error') {
+                const element = document.getElementById(elementId);
+                element.innerHTML = `<div class="${type}">${message}</div>`;
+            }
+
+            showForm(e, formName) {
+                e.preventDefault();
+                const forms = ['loginForm', 'registerForm', 'forgotPasswordForm', 'mfaSetupForm', 'userProfile'];
+                forms.forEach(form => document.getElementById(form).classList.add('hidden'));
+                document.getElementById(`${formName}Form`).classList.remove('hidden');
+                
+                // Clear messages
+                const messageContainers = ['message', 'registerMessage', 'forgotMessage', 'mfaMessage'];
+                messageContainers.forEach(container => {
+                    const el = document.getElementById(container);
+                    if (el) el.innerHTML = '';
+                });
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                const btn = document.getElementById('loginBtn');
+                btn.disabled = true;
+                btn.textContent = 'Signing in...';
+
+                try {
+                    const formData = new FormData(e.target);
+                    const data = {
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    };
+
+                    if (this.mfaRequired) {
+                        data.mfaToken = formData.get('mfaToken');
+                    }
+
+                    const response = await this.makeRequest('/login', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.requiresMFA) {
+                        this.mfaRequired = true;
+                        document.getElementById('mfaGroup').classList.remove('hidden');
+                        this.showMessage('message', 'Please enter your MFA code', 'success');
+                    } else {
+                        this.currentUser = response.user;
+                        this.showUserProfile();
+                    }
+
+                } catch (error) {
+                    this.showMessage('message', error.message);
+                    this.mfaRequired = false;
+                    document.getElementById('mfaGroup').classList.add('hidden');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                const btn = document.getElementById('registerBtn');
+                btn.disabled = true;
+                btn.textContent = 'Creating account...';
+
+                try {
+                    const formData = new FormData(e.target);
+                    const data = {
+                        username: formData.get('username'),
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    };
+
+                    const response = await this.makeRequest('/register', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.mfaSetupRequired) {
+                        this.setupRequired = true;
+                        this.showMfaSetup(response.qrCodeUrl);
+                    } else {
+                        this.showMessage('registerMessage', 'Account created successfully! Please sign in.', 'success');
+                        setTimeout(() => this.showForm({preventDefault: () => {}}, 'login'), 2000);
+                    }
+
+                } catch (error) {
+                    this.showMessage('registerMessage', error.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                }
+            }
+
+            async handleForgotPassword(e) {
+                e.preventDefault();
+                
+                try {
+                    const formData = new FormData(e.target);
+                    const data = { email: formData.get('email') };
+
+                    await this.makeRequest('/forgot-password', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.showMessage('forgotMessage', 'If the email exists, a reset link has been sent.', 'success');
+
+                } catch (error) {
+                    this.showMessage('forgotMessage', error.message);
+                }
+            }
+
+            async handleMfaSetup(e) {
+                e.preventDefault();
+                
+                try {
+                    const formData = new FormData(e.target);
+                    const data = { token: formData.get('setupMfaToken') };
+
+                    await this.makeRequest('/setup-mfa', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.showMessage('mfaMessage', 'MFA enabled successfully!', 'success');
+                    setTimeout(() => this.showForm({preventDefault: () => {}}, 'login'), 2000);
+
+                } catch (error) {
+                    this.showMessage('mfaMessage', error.message);
+                }
+            }
+
+            async handleLogout() {
+                try {
+                    await this.makeRequest('/logout', { method: 'POST' });
+                    this.currentUser = null;
+                    this.showForm({preventDefault: () => {}}, 'login');
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+
+            showMfaSetup(qrCodeUrl) {
+                document.getElementById('qrCodeContainer').innerHTML = `
+                    <img src="${qrCodeUrl}" alt="QR Code for MFA setup" style="max-width: 200px;">
+                `;
+                this.showForm({preventDefault: () => {}}, 'mfaSetup');
+            }
+
+            showUserProfile() {
+                const userInfo = document.getElementById('userInfo');
+                userInfo.innerHTML = `
+                    <p><strong>Email:</strong> ${this.currentUser.email}</p>
+                    <p><strong>Username:</strong> ${this.currentUser.username}</p>
+                    <p><strong>MFA Status:</strong> ${this.currentUser.mfaEnabled ? '✅ Enabled' : '❌ Disabled'}</p>
+                    <p><strong>Last Login:</strong> ${this.currentUser.lastLogin ? new Date(this.currentUser.lastLogin).toLocaleString() : 'N/A'}</p>
+                `;
+                this.showForm({preventDefault: () => {}}, 'userProfile');
+            }
+
+            checkPasswordStrength(e) {
+                const password = e.target.value;
+                const strengthFill = document.getElementById('strengthFill');
+                const strengthText = document.getElementById('strengthText');
+                
+                let score = 0;
+                let feedback = [];
+
+                // Length check
+                if (password.length >= 12) score += 25;
+                else feedback.push('At least 12 characters');
+
+                // Character variety
+                if (/[A-Z]/.test(password)) score += 25;
+                else feedback.push('Uppercase letter');
+
+                if (/[a-z]/.test(password)) score += 25;
+                else feedback.push('Lowercase letter');
+
+                if (/\d/.test(password)) score += 25;
+                else feedback.push('Number');
+
+                if (/\W/.test(password)) score += 25;
+                else feedback.push('Special character');
+
+                // Common password check
+                const common = ['password', '123456', 'qwerty', 'admin'];
+                if (common.some(c => password.toLowerCase().includes(c))) {
+                    score = Math.max(0, score - 50);
+                    feedback.push('Avoid common words');
+                }
+
+                strengthFill.style.width = `${Math.min(score, 100)}%`;
+                
+                if (score >= 100) {
+                    strengthFill.className = 'strength-fill strong';
+                    strengthText.textContent = 'Strong password ✅';
+                } else if (score >= 75) {
+                    strengthFill.className = 'strength-fill good';
+                    strengthText.textContent = 'Good password';
+                } else if (score >= 50) {
+                    strengthFill.className = 'strength-fill fair';
+                    strengthText.textContent = 'Fair password';
+                } else {
+                    strengthFill.className = 'strength-fill weak';
+                    strengthText.textContent = feedback.length ? `Missing: ${feedback.join(', ')}` : 'Weak password';
+                }
+            }
+
+            async checkAuthStatus() {
+                try {
+                    const response = await this.makeRequest('/profile');
+                    this.currentUser = response.user;
+                    this.showUserProfile();
+                } catch (error) {
+                    // Not authenticated, show login form
+                    this.showForm({preventDefault: () => {}}, 'login');
+                }
+            }
+        }
+
+        // Initialize the secure auth system
+        new SecureAuth();
+    </script>
+</body>
+</html>
