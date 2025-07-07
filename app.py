@@ -23,11 +23,11 @@ app = App(
     signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
 )
 
-class CasperAI:
+class ForgeAI:
     """AI Agent for Slack interactions"""
     
     def __init__(self):
-        self.system_prompt = """You are Casper, an AI assistant for the billionforgeai.space team. You are helpful, 
+        self.system_prompt = """You are ForgeAI, an AI assistant for the billionforgeai.space team. You are helpful, 
         intelligent, and have a friendly personality. You can help with:
         - Answering questions about development
         - Code assistance and debugging
@@ -64,7 +64,7 @@ class CasperAI:
             return "I'm having trouble processing your request right now. Please try again later."
 
 # Initialize AI agent
-casper_ai = CasperAI()
+forge_ai = ForgeAI()
 
 @app.event("app_home_opened")
 def handle_app_home_opened(client, event, logger):
@@ -80,14 +80,14 @@ def handle_app_home_opened(client, event, logger):
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": "🤖 Welcome to Casper AI Assistant"
+                            "text": "🤖 Welcome to ForgeAI Assistant"
                         }
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*Hello! I'm Casper, your AI assistant.*\n\nHere's how you can interact with me:\n\n• **Direct Message**: Send me a DM for private conversations\n• **Mention**: Tag me with `@Casper` in any channel\n• **Slash Command**: Use `/ask-casper` followed by your question\n\nI can help with development questions, code review, project planning, and general assistance!"
+                            "text": "*Hello! I'm ForgeAI, your AI assistant.*\n\nHere's how you can interact with me:\n\n• **Direct Message**: Send me a DM for private conversations\n• **Mention**: Tag me with `@ForgeAI` in any channel\n• **Slash Command**: Use `/ask-forgeai` followed by your question\n\nI can help with development questions, code review, project planning, and general assistance!"
                         }
                     },
                     {
@@ -124,7 +124,7 @@ def handle_app_mention(event, say, client, logger):
         
         # Generate AI response
         user_id = event.get("user")
-        response = casper_ai.generate_response(clean_text, user_id)
+        response = forge_ai.generate_response(clean_text, user_id)
         
         # Reply in thread
         say(response, thread_ts=event.get("ts"))
@@ -177,16 +177,16 @@ def handle_direct_message(event, say, client, logger):
             context = None
         
         # Generate AI response
-        response = casper_ai.generate_response(text, user_id, context or "")
+        response = forge_ai.generate_response(text, user_id, context or "")
         say(response)
         
     except Exception as e:
         logger.error(f"Error handling direct message: {e}")
         say("Sorry, I encountered an error. Please try again.")
 
-@app.command("/ask-casper")
+@app.command("/ask-forgeai")
 def handle_ask_command(ack, respond, command, logger):
-    """Handle the /ask-casper slash command"""
+    """Handle the /ask-forgeai slash command"""
     ack()
     
     try:
@@ -194,16 +194,16 @@ def handle_ask_command(ack, respond, command, logger):
         user_id = command.get("user_id")
         
         if not text:
-            respond("Please provide a question or message after the command. Example: `/ask-casper How do I debug Python code?`")
+            respond("Please provide a question or message after the command. Example: `/ask-forgeai How do I debug Python code?`")
             return
         
         # Generate AI response
-        response = casper_ai.generate_response(text, user_id)
+        response = forge_ai.generate_response(text, user_id)
         
         # Respond with the AI-generated answer
         respond({
             "response_type": "ephemeral",  # Only visible to the user
-            "text": f"🤖 *Casper AI Response:*\n\n{response}"
+            "text": f"🤖 *ForgeAI Response:*\n\n{response}"
         })
         
     except Exception as e:
@@ -228,5 +228,5 @@ if __name__ == "__main__":
     
     # Start the app
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
-    logger.info("🚀 Casper AI Slack Bot is starting...")
+    logger.info("🚀 ForgeAI Slack Bot is starting...")
     handler.start()

@@ -4,9 +4,9 @@
 
 ## Features
 
-- **Direct Messaging**: Have private conversations with Casper
-- **Channel Mentions**: Tag `@Casper` in any channel for help
-- **Slash Commands**: Use `/ask-casper` for quick questions
+- **Direct Messaging**: Have private conversations with ForgeAI
+- **Channel Mentions**: Tag `@ForgeAI` in any channel for help
+- **Slash Commands**: Use `/ask-forgeai` for quick questions
 - **Context Awareness**: Remembers recent conversation history
 - **Code Assistance**: Help with debugging, code review, and development questions
 - **Project Management**: Task planning and brainstorming support
@@ -50,29 +50,29 @@ OPENAI_API_KEY=sk-your-openai-key
 ## Usage
 
 ### Direct Messages
-Send a DM to Casper for private assistance:
+Send a DM to ForgeAI for private assistance:
 ```
 Help me debug this Python function
 ```
 
 ### Channel Mentions
-Tag Casper in any channel:
+Tag ForgeAI in any channel:
 ```
-@Casper How do I optimize this database query?
+@ForgeAI How do I optimize this database query?
 ```
 
 ### Slash Commands
 Use the slash command anywhere:
 ```
-/ask-casper What's the best way to structure a REST API?
+/ask-forgeai What's the best way to structure a REST API?
 ```
 
 ## Customization
 
-Edit the `system_prompt` in `app.py` to customize Casper's personality and capabilities:
+Edit the `system_prompt` in `app.py` to customize ForgeAI's personality and capabilities:
 
 ```python
-self.system_prompt = """You are Casper, an AI assistant specialized in...
+self.system_prompt = """You are ForgeAI, an AI assistant specialized in...
 ```
 
 ## Dependencies

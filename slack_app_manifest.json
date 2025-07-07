@@ -1,7 +1,7 @@
 {
   "display_information": {
-    "name": "Casper AI Assistant",
-    "description": "Your intelligent AI assistant for development and productivity",
+    "name": "ForgeAI Assistant",
+    "description": "Your intelligent AI assistant for development and productivity at billionforgeai.space",
     "background_color": "#2c2d30"
   },
   "features": {
@@ -11,13 +11,13 @@
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
-      "display_name": "Casper",
+      "display_name": "ForgeAI",
       "always_online": true
     },
     "slash_commands": [
       {
-        "command": "/ask-casper",
-        "description": "Ask Casper AI a question",
+        "command": "/ask-forgeai",
+        "description": "Ask ForgeAI a question",
         "usage_hint": "How do I deploy a Python app?"
       }
     ]

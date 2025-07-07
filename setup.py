@@ -46,7 +46,7 @@ def print_next_steps():
     print("\n📖 See README.md for detailed setup instructions")
 
 def main():
-    print("🤖 Casper AI Slack Bot Setup")
+    print("🤖 ForgeAI Slack Bot Setup")
     print("=" * 30)
     
     if not check_python_version():
