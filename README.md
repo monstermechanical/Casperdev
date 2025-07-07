@@ -1,6 +1,6 @@
-# Casper AI - Slack Bot Assistant
+# ForgeAI - Slack Bot Assistant
 
-🤖 An intelligent AI-powered Slack bot that acts as your personal development assistant using OpenAI's GPT models.
+🤖 An intelligent AI-powered Slack bot that acts as your personal development assistant using OpenAI's GPT models for billionforgeai.space.
 
 ## Features
 
@@ -16,7 +16,7 @@
 1. **Clone and Setup**:
    ```bash
    git clone <your-repo-url>
-   cd casperdev
+   cd billionforgeai.space
    python setup.py
    ```
 

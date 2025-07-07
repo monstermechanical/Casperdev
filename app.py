@@ -27,7 +27,7 @@ class CasperAI:
     """AI Agent for Slack interactions"""
     
     def __init__(self):
-        self.system_prompt = """You are Casper, an AI assistant for the Casperdev team. You are helpful, 
+        self.system_prompt = """You are Casper, an AI assistant for the billionforgeai.space team. You are helpful, 
         intelligent, and have a friendly personality. You can help with:
         - Answering questions about development
         - Code assistance and debugging
