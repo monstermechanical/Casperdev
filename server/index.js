@@ -58,11 +58,13 @@ mongoose.connect(MONGODB_URI, {
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const dataRoutes = require('./routes/data');
+const integrationRoutes = require('./routes/integrations');
 
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

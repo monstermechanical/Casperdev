@@ -23,7 +23,11 @@
     "jsonwebtoken": "^9.0.2",
     "helmet": "^7.1.0",
     "express-rate-limit": "^7.1.5",
-    "socket.io": "^4.7.4"
+    "socket.io": "^4.7.4",
+    "@hubspot/api-client": "^10.2.0",
+    "@slack/web-api": "^6.10.0",
+    "axios": "^1.6.2",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
