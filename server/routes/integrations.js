@@ -3,12 +3,18 @@ const { WebClient } = require('@slack/web-api');
 const { Client } = require('@hubspot/api-client');
 const { Client: NotionClient } = require('@notionhq/client');
 const auth = require('../middleware/auth');
+const { 
+  asyncHandler, 
+  validateSyncConfig, 
+  rateLimiter,
+  ConfigNotFoundError,
+  ServiceUnavailableError 
+} = require('../middleware/errorHandler');
 const cron = require('node-cron');
 const axios = require('axios');
 
 // Import new services and models
-const NotionSlackService = require('../services/notionSlackService');
-const SlackEventListener = require('../services/slackEventListener');
+const NotionSlackManager = require('../services/NotionSlackManager');
 const { NotionSyncConfig, NotionSyncHistory } = require('../models/NotionSyncConfig');
 
 const router = express.Router();
@@ -18,22 +24,35 @@ const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 const notionClient = new NotionClient({ auth: process.env.NOTION_API_KEY });
 
-// Initialize services
-let notionSlackService = null;
-let slackEventListener = null;
+// Initialize Notion-Slack Manager
+let notionSlackManager = null;
 
 // Initialize services on module load
 (async () => {
   try {
-    notionSlackService = new NotionSlackService();
-    slackEventListener = new SlackEventListener();
+    notionSlackManager = new NotionSlackManager({
+      notionApiKey: process.env.NOTION_API_KEY,
+      slackBotToken: process.env.SLACK_BOT_TOKEN,
+      slackSigningSecret: process.env.SLACK_SIGNING_SECRET,
+      slackAppToken: process.env.SLACK_APP_TOKEN,
+      port: process.env.SLACK_PORT || 3001
+    });
     
-    // Start event listener
-    await slackEventListener.startListening();
+    // Set up event listeners
+    notionSlackManager.on('messageSynced', (data) => {
+      console.log(`✅ Message synced to Notion: ${data.notionPage.id}`);
+    });
     
-    console.log('✅ Notion-Slack services initialized');
+    notionSlackManager.on('syncError', (data) => {
+      console.error(`❌ Sync error: ${data.error.message}`);
+    });
+    
+    // Start the manager
+    await notionSlackManager.start();
+    
+    console.log('✅ NotionSlackManager initialized and started');
   } catch (error) {
-    console.error('❌ Failed to initialize services:', error);
+    console.error('❌ Failed to initialize NotionSlackManager:', error);
   }
 })();
 
@@ -598,72 +617,56 @@ router.post('/auto-sync/enable', auth, async (req, res) => {
 // Enhanced Notion-Slack Integration Endpoints
 
 // Create sync configuration
-router.post('/notion/sync-config', auth, async (req, res) => {
-  try {
-    const {
-      slackTeamId,
-      slackChannelId,
-      slackChannelName,
-      notionDatabaseId,
-      notionDatabaseName,
-      triggerEmoji = '📝',
-      syncInterval = 10,
-      maxMessagesPerSync = 20,
-      tags = [],
-      syncFilters = {},
-      pageTemplate = {}
-    } = req.body;
+router.post('/notion/sync-config', auth, validateSyncConfig, rateLimiter(5, 300000), asyncHandler(async (req, res) => {
+  const {
+    slackTeamId,
+    slackChannelId,
+    slackChannelName,
+    notionDatabaseId,
+    notionDatabaseName,
+    triggerEmoji = '📝',
+    syncInterval = 10,
+    maxMessagesPerSync = 20,
+    tags = [],
+    syncFilters = {},
+    pageTemplate = {}
+  } = req.body;
 
-    // Validate required fields
-    if (!slackTeamId || !slackChannelId || !notionDatabaseId) {
-      return res.status(400).json({
-        error: 'slackTeamId, slackChannelId, and notionDatabaseId are required'
-      });
-    }
+  // Check if configuration already exists
+  const existingConfig = await NotionSyncConfig.findOne({
+    userId: req.user.id,
+    slackChannelId: slackChannelId
+  });
 
-    // Check if configuration already exists
-    const existingConfig = await NotionSyncConfig.findOne({
-      userId: req.user.id,
-      slackChannelId: slackChannelId
-    });
-
-    if (existingConfig) {
-      return res.status(409).json({
-        error: 'Sync configuration already exists for this channel'
-      });
-    }
-
-    // Create new sync configuration
-    const syncConfig = new NotionSyncConfig({
-      userId: req.user.id,
-      slackTeamId,
-      slackChannelId,
-      slackChannelName,
-      notionDatabaseId,
-      notionDatabaseName,
-      triggerEmoji,
-      syncInterval,
-      maxMessagesPerSync,
-      tags,
-      syncFilters,
-      pageTemplate
-    });
-
-    await syncConfig.save();
-
-    res.status(201).json({
-      message: 'Sync configuration created successfully',
-      config: syncConfig
-    });
-  } catch (error) {
-    console.error('Create sync config error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to create sync configuration',
-      error: error.message
+  if (existingConfig) {
+    return res.status(409).json({
+      error: 'Sync configuration already exists for this channel'
     });
   }
-});
+
+  // Create new sync configuration
+  const syncConfig = new NotionSyncConfig({
+    userId: req.user.id,
+    slackTeamId,
+    slackChannelId,
+    slackChannelName,
+    notionDatabaseId,
+    notionDatabaseName,
+    triggerEmoji,
+    syncInterval,
+    maxMessagesPerSync,
+    tags,
+    syncFilters,
+    pageTemplate
+  });
+
+  await syncConfig.save();
+
+  res.status(201).json({
+    message: 'Sync configuration created successfully',
+    config: syncConfig
+  });
+}));
 
 // Get sync configurations
 router.get('/notion/sync-configs', auth, async (req, res) => {
@@ -879,9 +882,9 @@ router.post('/notion/sync/trigger', auth, async (req, res) => {
   try {
     const { configId, channelId } = req.body;
 
-    if (!slackEventListener) {
+    if (!notionSlackManager || !notionSlackManager.isRunning) {
       return res.status(503).json({
-        error: 'Slack event listener not available'
+        error: 'Notion-Slack manager not available'
       });
     }
 
@@ -900,9 +903,31 @@ router.post('/notion/sync/trigger', auth, async (req, res) => {
         });
       }
       
-      result = await slackEventListener.triggerManualSync(config.slackChannelId);
+      result = await notionSlackManager.performBatchSync(config);
     } else if (channelId) {
-      result = await slackEventListener.triggerManualSync(channelId);
+      // Find configs for this channel
+      const configs = await NotionSyncConfig.find({ 
+        slackChannelId: channelId, 
+        userId: req.user.id, 
+        isActive: true 
+      });
+      
+      if (configs.length === 0) {
+        return res.status(404).json({
+          error: 'No active sync configurations found for this channel'
+        });
+      }
+      
+      let totalSynced = 0;
+      const results = [];
+      
+      for (const config of configs) {
+        const configResult = await notionSlackManager.performBatchSync(config);
+        totalSynced += configResult.syncedCount;
+        results.push({ configId: config._id, ...configResult });
+      }
+      
+      result = { syncedCount: totalSynced, results };
     } else {
       return res.status(400).json({
         error: 'Either configId or channelId is required'
@@ -927,10 +952,20 @@ router.post('/notion/sync/trigger', auth, async (req, res) => {
 router.get('/notion/service-status', auth, async (req, res) => {
   try {
     const status = {
-      notionSlackService: notionSlackService ? notionSlackService.getStatus() : null,
-      slackEventListener: slackEventListener ? slackEventListener.getStats() : null,
+      notionSlackManager: notionSlackManager ? notionSlackManager.getStats() : null,
+      integration: integrationStatus,
       timestamp: new Date().toISOString()
     };
+
+    // Add connection status
+    if (notionSlackManager) {
+      try {
+        const connections = await notionSlackManager.testConnections();
+        status.connections = connections;
+      } catch (error) {
+        status.connections = { error: error.message };
+      }
+    }
 
     res.json(status);
   } catch (error) {

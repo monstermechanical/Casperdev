@@ -60,6 +60,9 @@ const userRoutes = require('./routes/users');
 const dataRoutes = require('./routes/data');
 const integrationRoutes = require('./routes/integrations');
 
+// Import error handling middleware
+const { errorHandler, notFoundHandler, healthCheck } = require('./middleware/errorHandler');
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -67,17 +70,7 @@ app.use('/api/data', dataRoutes);
 app.use('/api/integrations', integrationRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    connections: {
-      database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-      server: 'Running'
-    }
-  });
-});
+app.get('/api/health', healthCheck);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -102,19 +95,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
-  });
-});
+// 404 handler for unmatched routes
+app.use('*', notFoundHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// Global error handling middleware (must be last)
+app.use(errorHandler);
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
