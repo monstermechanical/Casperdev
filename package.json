@@ -23,6 +23,7 @@
   "dependencies": {
     "@hubspot/api-client": "^10.2.0",
     "@notionhq/client": "^4.0.0",
+    "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^6.10.0",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
