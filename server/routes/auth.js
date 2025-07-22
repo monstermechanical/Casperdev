@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { sendEventToN8N, EVENT_TYPES } = require('./events');
 
 const router = express.Router();
 
@@ -37,6 +38,14 @@ router.post('/register', async (req, res) => {
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
+    // Send event to n8n
+    await sendEventToN8N(EVENT_TYPES.USER_REGISTERED, {
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      registrationDate: new Date().toISOString()
+    });
 
     res.status(201).json({
       message: 'User connected successfully',
@@ -87,6 +96,15 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
+    // Send login event to n8n
+    await sendEventToN8N(EVENT_TYPES.USER_LOGIN, {
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      loginTime: new Date().toISOString(),
+      userAgent: req.headers['user-agent']
+    });
 
     res.json({
       message: 'User connected successfully',

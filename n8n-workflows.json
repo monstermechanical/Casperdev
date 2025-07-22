@@ -1,0 +1,40 @@
+{
+  "workflows": [
+    {
+      "name": "User Registration Handler",
+      "description": "Handles new user registration events and sends welcome messages",
+      "webhook_path": "user-registered",
+      "actions": [
+        "Send welcome message to Slack #general",
+        "Log user registration event",
+        "Optionally send welcome email"
+      ]
+    },
+    {
+      "name": "Post Activity Monitor", 
+      "description": "Monitors post creation and alerts on urgent content",
+      "webhook_path": "post-created",
+      "actions": [
+        "Check for urgent keywords",
+        "Send alert to #alerts if urgent",
+        "Log activity to #activity channel"
+      ]
+    },
+    {
+      "name": "HubSpot Sync Monitor",
+      "description": "Monitors HubSpot sync operations and reports status",
+      "webhook_path": "hubspot-sync",
+      "actions": [
+        "Report sync completion to #integrations",
+        "Alert on large sync operations",
+        "Track sync performance metrics"
+      ]
+    }
+  ],
+  "webhook_urls": {
+    "user_registered": "http://localhost:5678/webhook/user-registered",
+    "post_created": "http://localhost:5678/webhook/post-created", 
+    "hubspot_sync": "http://localhost:5678/webhook/hubspot-sync",
+    "message_sent": "http://localhost:5678/webhook/message-sent"
+  }
+}
