@@ -4,6 +4,7 @@ const { Client } = require('@hubspot/api-client');
 const auth = require('../middleware/auth');
 const cron = require('node-cron');
 const axios = require('axios');
+const { sendEventToN8N, EVENT_TYPES } = require('./events');
 
 const router = express.Router();
 
@@ -224,6 +225,15 @@ router.post('/slack/notify', auth, async (req, res) => {
     });
 
     integrationStatus.slack.lastSync = new Date().toISOString();
+
+    // Send event to n8n
+    await sendEventToN8N(EVENT_TYPES.SLACK_NOTIFICATION, {
+      channel: channel,
+      message: message,
+      title: title,
+      sentBy: req.user.username,
+      sentAt: new Date().toISOString()
+    });
     
     res.json({
       message: 'Notification sent successfully',
@@ -369,6 +379,14 @@ async function syncContactsToSlack(channel) {
     });
 
     integrationStatus.hubspot.lastSync = new Date().toISOString();
+
+    // Send event to n8n
+    await sendEventToN8N(EVENT_TYPES.HUBSPOT_SYNC, {
+      type: 'contacts',
+      contactCount: contacts.length,
+      slackChannel: channel,
+      syncedAt: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Auto-sync contacts error:', error);
   }

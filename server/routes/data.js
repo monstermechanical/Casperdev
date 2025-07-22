@@ -1,5 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const { sendEventToN8N, EVENT_TYPES } = require('./events');
 
 const router = express.Router();
 
@@ -109,6 +110,16 @@ router.post('/posts', auth, async (req, res) => {
 
     applicationData.notifications.push(notification);
 
+    // Send event to n8n
+    await sendEventToN8N(EVENT_TYPES.POST_CREATED, {
+      postId: newPost.id,
+      userId: req.user.userId,
+      username: req.user.username,
+      content: newPost.content,
+      type: newPost.type,
+      createdAt: newPost.createdAt
+    });
+
     res.status(201).json({
       message: 'Post created successfully',
       post: newPost
@@ -178,6 +189,17 @@ router.post('/messages', auth, async (req, res) => {
     };
 
     applicationData.notifications.push(notification);
+
+    // Send event to n8n
+    await sendEventToN8N(EVENT_TYPES.MESSAGE_SENT, {
+      messageId: newMessage.id,
+      senderId: req.user.userId,
+      senderUsername: req.user.username,
+      receiverId: receiverId,
+      content: newMessage.content,
+      type: newMessage.type,
+      sentAt: newMessage.createdAt
+    });
 
     res.status(201).json({
       message: 'Message sent successfully',
