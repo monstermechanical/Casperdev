@@ -77,9 +77,37 @@ services:
     networks:
       - casperdev-network
 
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: casperdev-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=password
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - N8N_PERSISTED_BINARY_DATA_TTL=1440
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - casperdev-network
+    depends_on:
+      - mongodb
+      - redis
+
 volumes:
   mongodb_data:
   redis_data:
+  n8n_data:
 
 networks:
   casperdev-network:

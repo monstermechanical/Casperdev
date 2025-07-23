@@ -1,0 +1,219 @@
+{
+  "name": "Claude HubSpot Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "claude-assistant",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "claude-hubspot-assistant"
+    },
+    {
+      "parameters": {
+        "content": "=You are a helpful HubSpot CRM assistant. You can help with:\n- Analyzing contact data\n- Creating deal summaries\n- Suggesting follow-up actions\n- Formatting data for Slack notifications\n\nUser request: {{ $json.query }}\n\nContext data: {{ $json.context || 'No additional context provided' }}",
+        "options": {
+          "model": "claude-3-sonnet-20240229",
+          "max_tokens": 1000,
+          "temperature": 0.7
+        }
+      },
+      "id": "claude-node",
+      "name": "Claude AI Assistant",
+      "type": "n8n-nodes-base.anthropic",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-credentials",
+          "name": "Anthropic Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "resource": "contact",
+        "contactId": "={{ $('Webhook Trigger').first().json.contactId || '' }}",
+        "additionalFields": {
+          "properties": [
+            "firstname",
+            "lastname",
+            "email",
+            "phone",
+            "company",
+            "hs_lead_status",
+            "createdate",
+            "lastmodifieddate"
+          ]
+        }
+      },
+      "id": "hubspot-get-contact",
+      "name": "Get HubSpot Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [240, 500],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "channel": "={{ $('Webhook Trigger').first().json.slackChannel || '#general' }}",
+        "text": "🤖 **Claude AI Assistant Response**\n\n{{ $('Claude AI Assistant').first().json.content }}\n\n📊 *Based on HubSpot data analysis*",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "slack-message",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Claude analysis completed\",\n  \"response\": {{ $('Claude AI Assistant').first().json.content | tojson }},\n  \"timestamp\": \"{{ $now }}\",\n  \"contactData\": {{ $('Get HubSpot Contact').first().json || {} | tojson }}\n}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "resource": "deal",
+        "filters": {
+          "conditions": [
+            {
+              "property": "dealstage",
+              "operator": "IN",
+              "value": ["appointmentscheduled", "qualifiedtobuy", "presentationscheduled"]
+            }
+          ]
+        },
+        "additionalFields": {
+          "limit": 10,
+          "properties": [
+            "dealname",
+            "amount",
+            "dealstage",
+            "closedate",
+            "createdate",
+            "hubspot_owner_id"
+          ]
+        }
+      },
+      "id": "hubspot-get-deals",
+      "name": "Get Recent Deals",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [240, 700],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook Trigger').first().json.action }}",
+              "operation": "equal",
+              "value2": "analyze_deals"
+            }
+          ]
+        }
+      },
+      "id": "check-action-type",
+      "name": "Check Action Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Claude AI Assistant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get HubSpot Contact",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Action Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI Assistant": {
+      "main": [
+        [
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Slack": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Action Type": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "UTC"
+  },
+  "versionId": "claude-hubspot-v1.0"
+}
