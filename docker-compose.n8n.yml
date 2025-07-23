@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: casperdev-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=UTC
+      - TZ=UTC
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_EDITOR_BASE_URL=http://localhost:5678
+      - WEBHOOK_URL=http://localhost:5678
+      - N8N_METRICS=true
+      # Claude API configuration
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      # Slack configuration
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_DEFAULT_CHANNEL=${SLACK_DEFAULT_CHANNEL}
+      # CasperDev API configuration
+      - CASPERDEV_API_URL=http://host.docker.internal:5000
+      - CASPERDEV_JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./n8n/credentials:/home/node/.n8n/credentials
+    depends_on:
+      - n8n_db
+    networks:
+      - n8n_network
+      - casperdev_network
+
+  n8n_db:
+    image: postgres:13
+    container_name: casperdev-n8n-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n123
+    volumes:
+      - n8n_db_data:/var/lib/postgresql/data
+    networks:
+      - n8n_network
+
+  # Redis for n8n queue (optional but recommended for production)
+  n8n_redis:
+    image: redis:7-alpine
+    container_name: casperdev-n8n-redis
+    restart: unless-stopped
+    volumes:
+      - n8n_redis_data:/data
+    networks:
+      - n8n_network
+
+volumes:
+  n8n_data:
+  n8n_db_data:
+  n8n_redis_data:
+
+networks:
+  n8n_network:
+    driver: bridge
+  casperdev_network:
+    external: true
+    name: casperdev_default

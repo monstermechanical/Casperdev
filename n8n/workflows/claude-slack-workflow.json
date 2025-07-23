@@ -1,0 +1,398 @@
+{
+  "name": "Claude AI Slack Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "events": ["app_mention", "message"],
+        "additionalFields": {
+          "channel": ["general", "ai-assistant"]
+        }
+      },
+      "id": "slack-trigger",
+      "name": "Slack Trigger",
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.event.type}}",
+              "operation": "equal",
+              "value2": "app_mention"
+            },
+            {
+              "value1": "={{$json.event.text}}",
+              "operation": "contains",
+              "value2": "@claude"
+            }
+          ]
+        }
+      },
+      "id": "filter-mentions",
+      "name": "Filter Claude Mentions",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract message text and clean it\nconst text = $input.item.json.event.text;\nconst user = $input.item.json.event.user;\nconst channel = $input.item.json.event.channel;\nconst ts = $input.item.json.event.ts;\n\n// Remove @claude mention and clean the text\nconst cleanText = text.replace(/<@.*?>/g, '').trim();\n\n// Determine the type of request\nlet requestType = 'general';\nif (cleanText.toLowerCase().includes('analyze') || cleanText.toLowerCase().includes('data')) {\n  requestType = 'analyze';\n} else if (cleanText.toLowerCase().includes('generate') || cleanText.toLowerCase().includes('create')) {\n  requestType = 'generate';\n} else if (cleanText.toLowerCase().includes('hubspot') || cleanText.toLowerCase().includes('crm')) {\n  requestType = 'hubspot';\n}\n\nreturn {\n  json: {\n    originalText: text,\n    cleanText: cleanText,\n    user: user,\n    channel: channel,\n    timestamp: ts,\n    requestType: requestType\n  }\n};"
+      },
+      "id": "process-message",
+      "name": "Process Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.requestType}}",
+              "operation": "equal",
+              "value2": "hubspot"
+            }
+          ]
+        }
+      },
+      "id": "route-request",
+      "name": "Route Request Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "options": {
+          "fallbackOutput": 3
+        },
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.requestType}}",
+              "operation": "equal",
+              "value2": "hubspot"
+            },
+            {
+              "value1": "={{$json.requestType}}",
+              "operation": "equal",
+              "value2": "analyze"
+            },
+            {
+              "value1": "={{$json.requestType}}",
+              "operation": "equal",
+              "value2": "generate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/api/integrations/claude/enhance-hubspot",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.CASPERDEV_JWT_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"dataType\": \"contacts\",\n  \"limit\": 5\n}",
+        "options": {}
+      },
+      "id": "hubspot-claude",
+      "name": "HubSpot + Claude Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 100]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/api/integrations/claude/analyze",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.CASPERDEV_JWT_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"data\": {\n    \"request\": \"{{$json.cleanText}}\",\n    \"user\": \"{{$json.user}}\",\n    \"timestamp\": \"{{$json.timestamp}}\"\n  },\n  \"analysisType\": \"insights\",\n  \"context\": \"Slack message analysis request\"\n}",
+        "options": {}
+      },
+      "id": "data-analysis",
+      "name": "Data Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/api/integrations/claude/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.CASPERDEV_JWT_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"prompt\": \"{{$json.cleanText}}\",\n  \"model\": \"claude-3-sonnet-20240229\",\n  \"maxTokens\": 1000\n}",
+        "options": {}
+      },
+      "id": "content-generation",
+      "name": "Content Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/api/integrations/claude/chat",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.CASPERDEV_JWT_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{$json.cleanText}}\"\n    }\n  ],\n  \"model\": \"claude-3-sonnet-20240229\",\n  \"maxTokens\": 1500\n}",
+        "options": {}
+      },
+      "id": "general-chat",
+      "name": "General Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format the Claude response for Slack\nconst inputData = $input.item.json;\nlet claudeResponse = '';\nlet responseType = '';\n\n// Determine the response type and extract the content\nif (inputData.insights) {\n  claudeResponse = inputData.insights;\n  responseType = '📊 HubSpot Analysis';\n} else if (inputData.analysis) {\n  claudeResponse = inputData.analysis;\n  responseType = '🔍 Data Analysis';\n} else if (inputData.response) {\n  claudeResponse = inputData.response;\n  responseType = inputData.message?.includes('generated') ? '✍️ Generated Content' : '🤖 Claude Assistant';\n}\n\n// Format the message for Slack\nconst slackMessage = {\n  channel: $('process-message').item.json.channel,\n  text: `*${responseType}*\\n\\n${claudeResponse}\\n\\n_Powered by Claude AI via CasperDev_`,\n  thread_ts: $('process-message').item.json.timestamp\n};\n\nreturn {\n  json: slackMessage\n};"
+      },
+      "id": "format-response",
+      "name": "Format Slack Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "channel": "={{$json.channel}}",
+        "text": "={{$json.text}}",
+        "otherOptions": {
+          "thread_ts": "={{$json.thread_ts}}"
+        }
+      },
+      "id": "slack-response",
+      "name": "Send Slack Response",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{$('process-message').item.json.channel}}",
+        "text": "🤖 Processing your request with Claude AI...",
+        "otherOptions": {
+          "thread_ts": "={{$('process-message').item.json.timestamp}}"
+        }
+      },
+      "id": "processing-notification",
+      "name": "Processing Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [680, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "general",
+        "text": "🚀 Claude AI Workflow is now active! Mention @claude in any message to interact with AI.\n\nAvailable commands:\n• `@claude generate [content request]` - Generate content\n• `@claude analyze [data/question]` - Analyze data\n• `@claude hubspot` - Get CRM insights\n• `@claude [any question]` - General chat\n\nPowered by CasperDev + n8n + Claude AI"
+      },
+      "id": "startup-notification",
+      "name": "Startup Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [240, 500],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Claude Mentions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Claude Mentions": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Processing Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Route Request Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Request Type": {
+      "main": [
+        [
+          {
+            "node": "HubSpot + Claude Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Data Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Content Generation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot + Claude Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Generation": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Chat": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Response": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "UTC"
+  },
+  "versionId": "1.0.0"
+}
