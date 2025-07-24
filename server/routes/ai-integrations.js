@@ -99,14 +99,30 @@ router.post('/ollama/pull', auth, async (req, res) => {
       });
     }
 
-    // Start the pull process
+    // Start the pull process with streaming
     const pullStream = await ollama.pull({ model: model, stream: true });
     
+    // Send initial response
     res.json({
       status: 'started',
       message: `Started pulling model: ${model}`,
       model: model
     });
+
+    // Consume the stream to handle progress and completion
+    try {
+      for await (const chunk of pullStream) {
+        // Log progress for debugging/monitoring
+        console.log(`Pull progress for ${model}:`, chunk);
+        
+        // Handle completion
+        if (chunk.status === 'success') {
+          console.log(`Successfully pulled model: ${model}`);
+        }
+      }
+    } catch (streamError) {
+      console.error(`Error during model pull stream for ${model}:`, streamError);
+    }
   } catch (error) {
     res.status(500).json({
       status: 'error',
