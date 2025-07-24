@@ -5,3 +5,42 @@
 🔗 API available at http://localhost:5000/api
 📡 Socket.IO server ready for real-time connections
 🤖 Agent communication endpoints ready
+🚀 Backend Agent running on port 5000
+🔗 API available at http://localhost:5000/api
+📡 Socket.IO server ready for real-time connections
+🤖 Agent communication endpoints ready
+Slack command received: undefined undefined from undefined
+Slack interactive error: SyntaxError: "undefined" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at /workspace/server/routes/slack.js:200:26
+    at Layer.handle [as handle_request] (/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/workspace/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/workspace/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at /workspace/node_modules/express/lib/router/index.js:284:15
+    at Function.process_params (/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Function.handle (/workspace/node_modules/express/lib/router/index.js:175:3)
+Slack command received: /casperdev help from testuser
+Command processing error: Error: An API error occurred: invalid_auth
+    at platformErrorFromResult (/workspace/node_modules/@slack/web-api/dist/errors.js:62:33)
+    at WebClient.apiCall (/workspace/node_modules/@slack/web-api/dist/WebClient.js:181:56)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processSlackCommand (/workspace/server/routes/slack.js:323:5) {
+  code: 'slack_webapi_platform_error',
+  data: { ok: false, error: 'invalid_auth', response_metadata: {} }
+}
+/workspace/node_modules/@slack/web-api/dist/errors.js:62
+    const error = errorWithCode(new Error(`An API error occurred: ${result.error}`), ErrorCode.PlatformError);
+                                ^
+
+Error: An API error occurred: invalid_auth
+    at platformErrorFromResult (/workspace/node_modules/@slack/web-api/dist/errors.js:62:33)
+    at WebClient.apiCall (/workspace/node_modules/@slack/web-api/dist/WebClient.js:181:56)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processSlackCommand (/workspace/server/routes/slack.js:330:5) {
+  code: 'slack_webapi_platform_error',
+  data: { ok: false, error: 'invalid_auth', response_metadata: {} }
+}
+
+Node.js v22.16.0

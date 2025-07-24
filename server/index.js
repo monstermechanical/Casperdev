@@ -43,7 +43,14 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(express.json());
+// Capture raw body for Slack signature verification
+app.use(express.json({
+  verify: (req, res, buf, encoding) => {
+    if (req.originalUrl && req.originalUrl.startsWith('/api/slack')) {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
@@ -63,6 +70,7 @@ const userRoutes = require('./routes/users');
 const dataRoutes = require('./routes/data');
 const integrationRoutes = require('./routes/integrations');
 const pythonBridgeRoutes = require('./routes/python-bridge');
+const slackRoutes = require('./routes/slack');
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -70,6 +78,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/bridge', pythonBridgeRoutes);
+app.use('/api/slack', slackRoutes);
 
 // Agent Communication Routes
 app.post('/api/receive-message', (req, res) => {

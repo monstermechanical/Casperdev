@@ -23,7 +23,8 @@ import {
   Settings,
   Wifi,
   WifiOff,
-  Hub
+  Hub,
+  Chat
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -54,7 +55,8 @@ const Navbar = () => {
     { label: 'Users', path: '/users', icon: <People /> },
     { label: 'Messages', path: '/messages', icon: <Message /> },
     { label: 'Connections', path: '/connections', icon: <Hub /> },
-    { label: 'Analytics', path: '/analytics', icon: <Analytics /> }
+    { label: 'Analytics', path: '/analytics', icon: <Analytics /> },
+    { label: 'Slack', path: '/slack', icon: <Chat /> }
   ];
 
   const isActive = (path) => location.pathname === path;
