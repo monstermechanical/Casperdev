@@ -18,6 +18,7 @@ import Users from './components/Users';
 import Messages from './components/Messages';
 import Analytics from './components/Analytics';
 import ConnectionHub from './components/ConnectionHub';
+import AIAssistant from './components/AIAssistant';
 
 // Create theme
 const theme = createTheme({
@@ -131,6 +132,12 @@ function App() {
                   <Route path="/connections" element={
                     <ProtectedRoute>
                       <ConnectionHub />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/ai" element={
+                    <ProtectedRoute>
+                      <AIAssistant />
                     </ProtectedRoute>
                   } />
                   

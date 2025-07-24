@@ -23,7 +23,9 @@ import {
   Settings,
   Wifi,
   WifiOff,
-  Hub
+  Hub,
+  BarChart,
+  Psychology
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -50,11 +52,12 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
-    { label: 'Users', path: '/users', icon: <People /> },
-    { label: 'Messages', path: '/messages', icon: <Message /> },
-    { label: 'Connections', path: '/connections', icon: <Hub /> },
-    { label: 'Analytics', path: '/analytics', icon: <Analytics /> }
+    { path: '/', label: 'Dashboard', icon: <Dashboard /> },
+    { path: '/users', label: 'Users', icon: <People /> },
+    { path: '/messages', label: 'Messages', icon: <Message /> },
+    { path: '/analytics', label: 'Analytics', icon: <BarChart /> },
+    { path: '/connections', label: 'Connections', icon: <Hub /> },
+    { path: '/ai', label: 'AI Assistant', icon: <Psychology /> }
   ];
 
   const isActive = (path) => location.pathname === path;
