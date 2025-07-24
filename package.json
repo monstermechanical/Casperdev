@@ -9,14 +9,18 @@
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test:zapier": "node test-zapier-integration.js",
+    "test:integrations": "node test-integration.js"
   },
   "keywords": [
     "fullstack",
     "react",
     "node",
     "express",
-    "mongodb"
+    "mongodb",
+    "zapier",
+    "automation"
   ],
   "author": "Casperdev",
   "license": "MIT",
