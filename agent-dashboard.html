@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Orchestrator Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .card h2 {
+            color: #4a5568;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f1f3f4;
+        }
+        
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .agent-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ccc;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card.running {
+            border-left-color: #48bb78;
+        }
+        
+        .agent-card.stopped {
+            border-left-color: #f56565;
+        }
+        
+        .agent-card.starting {
+            border-left-color: #ed8936;
+        }
+        
+        .agent-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .agent-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-running {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-stopped {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .status-starting {
+            background: #feebc8;
+            color: #9c4221;
+        }
+        
+        .agent-url {
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #38a169;
+        }
+        
+        .messages {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 1rem;
+        }
+        
+        .message {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+        
+        .message-info {
+            background: #bee3f8;
+            border-left: 3px solid #3182ce;
+        }
+        
+        .message-error {
+            background: #fed7d7;
+            border-left: 3px solid #e53e3e;
+        }
+        
+        .message-relay {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        
+        .message-time {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .communication-test {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .test-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+        }
+        
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .indicator-running {
+            background: #48bb78;
+        }
+        
+        .indicator-stopped {
+            background: #f56565;
+        }
+        
+        .indicator-starting {
+            background: #ed8936;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Agent Orchestrator Dashboard</h1>
+        <p>Monitor and control your connected agents</p>
+    </div>
+    
+    <div class="container">
+        <!-- Controls -->
+        <div class="card">
+            <h2>🎮 Agent Controls</h2>
+            <div class="controls">
+                <button class="btn btn-success" onclick="startAllAgents()">🚀 Start All Agents</button>
+                <button class="btn btn-danger" onclick="stopAllAgents()">🛑 Stop All Agents</button>
+                <button class="btn btn-primary" onclick="refreshStatus()">🔄 Refresh Status</button>
+                <button class="btn btn-primary" onclick="testConnections()">🔗 Test Connections</button>
+            </div>
+        </div>
+        
+        <!-- Agent Status -->
+        <div class="card">
+            <h2>🤖 Agent Status</h2>
+            <div class="agent-grid" id="agentGrid">
+                <!-- Agents will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Communication Test -->
+        <div class="card">
+            <h2>💬 Agent Communication Test</h2>
+            <div class="communication-test">
+                <div class="test-form">
+                    <div class="form-group">
+                        <label>From Agent:</label>
+                        <select id="fromAgent">
+                            <option value="orchestrator">Orchestrator</option>
+                            <option value="backend">Backend</option>
+                            <option value="python">Python</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>To Agent:</label>
+                        <select id="toAgent">
+                            <option value="backend">Backend</option>
+                            <option value="python">Python</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Action:</label>
+                        <select id="action">
+                            <option value="ping">Ping</option>
+                            <option value="status">Get Status</option>
+                            <option value="search-jobs">Search Jobs</option>
+                            <option value="get-profile">Get Profile</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Message:</label>
+                        <input type="text" id="message" placeholder="Enter message..." value="python developer">
+                    </div>
+                    <button class="btn btn-primary" onclick="sendMessage()">📤 Send Message</button>
+                </div>
+                <div>
+                    <h3>Response:</h3>
+                    <div id="messageResponse" class="messages" style="max-height: 200px;">
+                        <!-- Response will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Log -->
+        <div class="card">
+            <h2>📝 Message Log</h2>
+            <div id="messageLog" class="messages">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io('http://localhost:4000');
+        let agents = {};
+        
+        // Socket event handlers
+        socket.on('connect', () => {
+            addLogMessage('info', 'orchestrator', 'Connected to Agent Orchestrator');
+            refreshStatus();
+        });
+        
+        socket.on('agent-status', (agentStatus) => {
+            agents = agentStatus;
+            updateAgentGrid();
+        });
+        
+        socket.on('log-message', (logEntry) => {
+            addLogMessage(logEntry.level, logEntry.agent, logEntry.message);
+        });
+        
+        socket.on('error', (error) => {
+            addLogMessage('error', 'orchestrator', `Error: ${error}`);
+        });
+        
+        // Functions
+        async function startAllAgents() {
+            try {
+                const response = await fetch('http://localhost:4000/agents/start', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                addLogMessage('info', 'orchestrator', result.message);
+            } catch (error) {
+                addLogMessage('error', 'orchestrator', `Failed to start agents: ${error.message}`);
+            }
+        }
+        
+        async function stopAllAgents() {
+            try {
+                const response = await fetch('http://localhost:4000/agents/stop', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                addLogMessage('info', 'orchestrator', result.message);
+            } catch (error) {
+                addLogMessage('error', 'orchestrator', `Failed to stop agents: ${error.message}`);
+            }
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('http://localhost:4000/agents/status');
+                const status = await response.json();
+                agents = status;
+                updateAgentGrid();
+                addLogMessage('info', 'orchestrator', 'Status refreshed');
+            } catch (error) {
+                addLogMessage('error', 'orchestrator', `Failed to refresh status: ${error.message}`);
+            }
+        }
+        
+        async function testConnections() {
+            addLogMessage('info', 'orchestrator', 'Testing connections...');
+            
+            // Test each agent
+            for (const [name, agent] of Object.entries(agents)) {
+                try {
+                    const response = await fetch(`${agent.url}/health`);
+                    if (response.ok) {
+                        addLogMessage('info', name, '✅ Connection test passed');
+                    } else {
+                        addLogMessage('error', name, '❌ Connection test failed');
+                    }
+                } catch (error) {
+                    addLogMessage('error', name, `❌ Connection test failed: ${error.message}`);
+                }
+            }
+        }
+        
+        async function sendMessage() {
+            const from = document.getElementById('fromAgent').value;
+            const to = document.getElementById('toAgent').value;
+            const action = document.getElementById('action').value;
+            const message = document.getElementById('message').value;
+            
+            try {
+                const response = await fetch('http://localhost:4000/agents/communicate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from, to, message, action })
+                });
+                
+                const result = await response.json();
+                
+                // Display response
+                const responseDiv = document.getElementById('messageResponse');
+                responseDiv.innerHTML = `
+                    <div class="message message-info">
+                        <strong>Response from ${to}:</strong><br>
+                        ${JSON.stringify(result, null, 2)}
+                        <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                ` + responseDiv.innerHTML;
+                
+                addLogMessage('relay', from, `Message sent to ${to}: ${action}`);
+                
+            } catch (error) {
+                addLogMessage('error', 'orchestrator', `Failed to send message: ${error.message}`);
+            }
+        }
+        
+        function updateAgentGrid() {
+            const grid = document.getElementById('agentGrid');
+            grid.innerHTML = '';
+            
+            for (const [name, agent] of Object.entries(agents)) {
+                const statusClass = agent.status === 'running' ? 'running' : 
+                                   agent.status === 'starting' ? 'starting' : 'stopped';
+                
+                const statusIndicator = agent.status === 'running' ? 'indicator-running' : 
+                                       agent.status === 'starting' ? 'indicator-starting' : 'indicator-stopped';
+                
+                const card = document.createElement('div');
+                card.className = `agent-card ${statusClass}`;
+                card.innerHTML = `
+                    <div class="agent-name">
+                        <span class="status-indicator ${statusIndicator}"></span>
+                        ${name.charAt(0).toUpperCase() + name.slice(1)} Agent
+                    </div>
+                    <div class="agent-status status-${agent.status}">${agent.status.toUpperCase()}</div>
+                    <div class="agent-url">${agent.url}</div>
+                    <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
+                        Port: ${agent.port}
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+        
+        function addLogMessage(level, agent, message) {
+            const log = document.getElementById('messageLog');
+            const messageClass = level === 'error' ? 'message-error' : 
+                               level === 'relay' ? 'message-relay' : 'message-info';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${messageClass}`;
+            messageDiv.innerHTML = `
+                <strong>[${agent}]</strong> ${message}
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            log.insertBefore(messageDiv, log.firstChild);
+            
+            // Keep only last 50 messages
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+        
+        // Initial status check
+        setTimeout(refreshStatus, 1000);
+    </script>
+</body>
+</html>
