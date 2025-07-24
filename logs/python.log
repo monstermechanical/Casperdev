@@ -1,0 +1,28 @@
+INFO:     Will watch for changes in these directories: ['/workspace']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [5754] using StatReload
+
+🐍 Python Upwork Agent Starting...
+================================
+Port: 8000
+Node.js Service: http://localhost:5000
+Upwork Configured: False
+
+API Endpoints:
+- GET  /         - Service info
+- GET  /health   - Health check  
+- POST /slack/command - Handle Slack commands
+- GET  /upwork/jobs?query=... - Search jobs
+- GET  /history  - Request history
+- POST /api/receive-message - Agent communication
+- POST /api/send-message - Send to other agents
+- GET  /api/agent-messages - Message history
+
+Agent Communication Ready!
+Connect to orchestrator: http://localhost:4000
+
+INFO:     Started server process [5767]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:httpx:HTTP Request: GET http://localhost:5000/api/health "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:38810 - "GET /health HTTP/1.1" 200 OK

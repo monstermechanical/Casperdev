@@ -1,0 +1,3 @@
+🎯 Agent Orchestrator running on port 4000
+📊 Dashboard: http://localhost:4000/health
+🔗 WebSocket: ws://localhost:4000
