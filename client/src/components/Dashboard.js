@@ -6,7 +6,6 @@ import {
   Typography,
   Card,
   CardContent,
-  CardActions,
   Button,
   Chip,
   List,
@@ -22,7 +21,6 @@ import {
   Message,
   Notifications,
   CloudDone,
-  Warning,
   CheckCircle,
   TrendingUp
 } from '@mui/icons-material';

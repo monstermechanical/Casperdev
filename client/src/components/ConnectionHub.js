@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Grid,
@@ -20,12 +20,10 @@ import {
 } from '@mui/material';
 import {
   CloudDone,
-  Database,
+  Storage,
   Wifi,
   People,
   Message,
-  Notifications,
-  Security,
   Speed,
   CheckCircle,
   Warning,
@@ -167,7 +165,7 @@ const ConnectionHub = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  <Database sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  <Storage sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Core Services
                 </Typography>
                 

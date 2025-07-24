@@ -1,409 +1,213 @@
-# Casperdev - Connect All
+# Casperdev - Full-Stack Connected Application
 
-A comprehensive full-stack application demonstrating complete system connectivity - from database to real-time communications, user connections, and external API integrations.
-
-## 🌐 System Architecture
-
-This application showcases a fully connected ecosystem:
-
-### Backend Connections
-- **MongoDB Database** - User data and application state
-- **Express.js API** - RESTful endpoints for all operations
-- **Socket.IO Server** - Real-time bidirectional communication
-- **JWT Authentication** - Secure user session management
-- **External APIs** - Weather data and notification services
-
-### Frontend Connections
-- **React 18** - Modern component-based UI
-- **Material-UI** - Beautiful, accessible design system
-- **Socket.IO Client** - Real-time updates and messaging
-- **React Query** - Efficient server state management
-- **React Router** - Client-side navigation
-
-### External Integrations
-- **🔗 Zapier** - Workflow automation and app connectivity
-- **📊 HubSpot** - CRM and contact management
-- **💬 Slack** - Team communication and notifications
-- **🐍 Python Services** - Specialized processing and APIs
-- **🔄 n8n Workflows** - Advanced automation flows
-
-### Features Connected
-- 🔐 **User Authentication** - Secure login/registration
-- 👥 **User Connections** - Friend requests and networking
-- 💬 **Real-time Messaging** - Instant communication
-- 📊 **Live Analytics** - System health monitoring
-- 🔔 **Push Notifications** - Real-time alerts
-- 🌐 **External Integrations** - Weather API example
-- 📱 **Responsive Design** - Works on all devices
-- ⚡ **Zapier Automation** - Connect with 5000+ apps
+A multi-service application with Node.js backend, Python microservice, React frontend, and agent orchestration system.
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB (local or cloud instance)
-- npm or yarn
-
-### Installation
-
-1. **Clone and install dependencies:**
 ```bash
-# Install backend dependencies
-npm run install-all
+# Start all services
+./start-all-services.sh
 
-# Or install separately:
-npm install
-cd client && npm install
+# Test all services
+./test-all-services.sh
+
+# Stop all services
+./stop-all-services.sh
 ```
 
-2. **Environment Setup:**
-```bash
-# Copy environment template
-cp .env.example .env
+## 🏗️ Architecture
 
-# Edit .env with your configuration:
-# - MongoDB connection string
-# - JWT secret key
-# - External API keys (optional)
-```
+The application consists of four main services:
 
-3. **Start the application:**
-```bash
-# Development mode (starts both frontend and backend)
-npm run dev
+1. **Frontend (Port 3000)** - React application with Material-UI
+2. **Backend (Port 5000)** - Node.js/Express API server
+3. **Python Service (Port 8000)** - FastAPI microservice for integrations
+4. **Orchestrator (Port 4000)** - Agent coordination service
 
-# Or start separately:
-npm run server  # Backend on http://localhost:5000
-npm run client  # Frontend on http://localhost:3000
-```
+## 📋 Prerequisites
+
+- Node.js 16+ and npm
+- Python 3.8+
+- MongoDB (optional, will work without it)
+
+## 🛠️ Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd casperdev
+   ```
+
+2. **Install Node.js dependencies**
+   ```bash
+   npm install
+   cd client && npm install
+   cd ..
+   ```
+
+3. **Install Python dependencies**
+   ```bash
+   cd python-upwork-service
+   python3 -m pip install -r requirements.txt
+   cd ..
+   ```
+
+4. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
 ## 🔧 Configuration
 
-### Database Connection
-```bash
-# Local MongoDB
+Create a `.env` file in the root directory with:
+
+```env
+# Node.js Backend
+PORT=5000
+NODE_ENV=development
+JWT_SECRET=your-secret-key
 MONGODB_URI=mongodb://localhost:27017/casperdev
 
-# MongoDB Atlas (cloud)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/casperdev
+# Python Service
+PYTHON_SERVICE_URL=http://localhost:8000
+
+# Integrations (optional)
+SLACK_BOT_TOKEN=xoxb-your-token
+HUBSPOT_ACCESS_TOKEN=your-token
+UPWORK_CONSUMER_KEY=your-key
 ```
 
-### Security Settings
+## 🚦 Running Services
+
+### All Services at Once
 ```bash
-JWT_SECRET=your-super-secret-key-here
-JWT_EXPIRES_IN=7d
+./start-all-services.sh
 ```
 
-### External Services (Optional)
+### Individual Services
 ```bash
-# Weather API
-WEATHER_API_KEY=your-weather-api-key
+# Backend
+node server/index.js
 
-# Email notifications
-SENDGRID_API_KEY=your-sendgrid-key
+# Python Service
+cd python-upwork-service
+python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
 
-# Zapier Integration
-ZAPIER_WEBHOOK_URL=https://hooks.zapier.com/hooks/catch/your-webhook-id/
-ZAPIER_API_KEY=your-zapier-api-key
+# Frontend
+cd client
+npm start
 
-# Cloud storage
-AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
+# Orchestrator
+node agent-orchestrator.js
 ```
 
-## 📡 Connection Types
+## 📊 Monitoring
 
-### 1. Database Connections
-- **Primary**: MongoDB for user data, posts, messages
-- **Connection pooling**: Automatic reconnection handling
-- **Data validation**: Mongoose schemas with validation
+### Health Endpoints
+- Backend: http://localhost:5000/api/health
+- Python: http://localhost:8000/health
+- Orchestrator: http://localhost:4000/health
 
-### 2. Real-time Connections
-- **WebSocket**: Socket.IO for instant messaging
-- **Room management**: User-based chat rooms
-- **Presence system**: Online/offline status tracking
-- **Event broadcasting**: System-wide notifications
+### Logs
+All service logs are stored in the `logs/` directory:
+- `backend.log` - Node.js backend logs
+- `python.log` - Python service logs
+- `orchestrator.log` - Agent orchestrator logs
+- `frontend.log` - React development server logs
 
-### 3. API Connections
-- **RESTful endpoints**: Full CRUD operations
-- **Authentication middleware**: JWT token validation
-- **Rate limiting**: DDoS protection
-- **Error handling**: Comprehensive error responses
-
-### 4. User Connections
-- **Friend system**: Send/accept/reject requests
-- **Connection status**: Pending, accepted, blocked states
-- **Social features**: User discovery and networking
-- **Privacy controls**: Connection management
-
-### 4. Integration Connections
-- **HubSpot CRM**: Contact and deal management
-- **Slack API**: Real-time team notifications
-- **Zapier Webhooks**: Automation and workflow triggers
-- **Python Bridge**: Specialized service communication
-- **n8n Workflows**: Visual automation builder
-
-## 🛠 API Endpoints
-
-### Authentication
+### Testing
+Run the comprehensive test suite:
 ```bash
-POST /api/auth/register  # Create user connection
-POST /api/auth/login     # Establish user session
-GET  /api/auth/me        # Verify connection
-POST /api/auth/logout    # Terminate session
+./test-all-services.sh
 ```
 
-### User Management
-```bash
-GET    /api/users              # Discover users
-GET    /api/users/:id          # User profile
-POST   /api/users/:id/connect  # Send connection request
-PUT    /api/users/:id/connection # Accept/reject request
-GET    /api/users/:id/connections # User connections
-```
+## 🔌 API Endpoints
 
-### Data & Messaging
-```bash
-GET  /api/data/dashboard    # System overview
-GET  /api/data/posts        # Activity feed
-POST /api/data/posts        # Create post
-GET  /api/data/messages     # Message history
-POST /api/data/messages     # Send message
-GET  /api/data/notifications # User notifications
-```
+### Backend API (Port 5000)
+- `GET /api/health` - Health check
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/messages` - Get messages
+- `POST /api/agents/message` - Send agent message
 
-### System Health
-```bash
-GET /api/health             # Overall system status
-GET /api/data/health        # Detailed health check
-GET /api/data/external/weather # External API test
-```
+### Python API (Port 8000)
+- `GET /health` - Health check
+- `POST /slack/command` - Handle Slack commands
+- `GET /upwork/jobs` - Search Upwork jobs
+- `POST /api/receive-message` - Receive agent messages
 
-### Integration & Automation
-```bash
-GET    /api/integrations/status         # Overall integration health
-GET    /api/integrations/hubspot/test   # Test HubSpot connection
-GET    /api/integrations/slack/test     # Test Slack connection
-GET    /api/integrations/zapier/test    # Test Zapier connection
-POST   /api/integrations/zapier/trigger # Trigger Zapier workflows
-POST   /api/integrations/zapier/webhook # Receive Zapier webhooks
-GET    /api/integrations/zapier/webhooks # Webhook history
-```
+### Orchestrator API (Port 4000)
+- `GET /health` - Health check with agent status
+- WebSocket connection for real-time updates
 
-## 🔄 Real-time Events
+## 🏛️ Project Structure
 
-### Socket.IO Events
-```javascript
-// Client to Server
-socket.emit('join-room', roomId)
-socket.emit('send-message', messageData)
-socket.emit('update-status', statusData)
-
-// Server to Client
-socket.on('receive-message', messageData)
-socket.on('user-joined', userId)
-socket.on('connection-request', requestData)
-socket.on('user-status-update', statusData)
-```
-
-### Zapier Integration Events
-```javascript
-// Trigger Zapier workflow
-fetch('/api/integrations/zapier/trigger', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    action: 'new_user_signup',
-    data: { email: 'user@example.com', plan: 'premium' },
-    zap_name: 'Welcome Email Sequence'
-  })
-});
-
-// Receive webhook from Zapier
-// POST /api/integrations/zapier/webhook
-{
-  "action": "new_lead",
-  "data": {
-    "email": "lead@example.com",
-    "source": "website_form"
-  }
-}
-```
-
-## 📊 Monitoring Connections
-
-### Connection Hub
-Access the **Connection Hub** (`/connections`) to monitor:
-- Database connection status
-- Real-time server connectivity
-- User connection statistics
-- External API health (Weather, HubSpot, Slack, Zapier)
-- System performance metrics
-- Webhook activity and automation status
-
-### Health Checks
-- **Endpoint**: `GET /api/health`
-- **Includes**: Database, cache, external APIs
-- **Auto-refresh**: Every 30 seconds
-- **Alerts**: Real-time notifications for issues
-
-## 🔧 Development
-
-### Project Structure
 ```
 casperdev/
-├── server/                 # Backend application
-│   ├── index.js           # Server entry point
-│   ├── models/            # Database schemas
-│   ├── routes/            # API endpoints
-│   ├── middleware/        # Authentication, etc.
-│   └── ...
-├── client/                # Frontend application
+├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/    # React components
-│   │   ├── contexts/      # State management
-│   │   └── ...
+│   │   └── App.js        # Main app component
 │   └── package.json
-├── package.json           # Root dependencies
-└── .env.example          # Configuration template
+├── server/                # Node.js backend
+│   ├── models/           # Database models
+│   ├── routes/           # API routes
+│   ├── middleware/       # Express middleware
+│   └── index.js          # Server entry point
+├── python-upwork-service/ # Python microservice
+│   ├── app.py           # FastAPI application
+│   └── requirements.txt  # Python dependencies
+├── logs/                 # Service logs
+├── agent-orchestrator.js # Agent coordination
+└── .env                 # Environment configuration
 ```
 
-### Available Scripts
+## 🐛 Troubleshooting
+
+### MongoDB Connection Issues
+The application will run without MongoDB. To enable database functionality:
+1. Install MongoDB locally or use MongoDB Atlas
+2. Update `MONGODB_URI` in `.env`
+3. Restart the backend service
+
+### Port Conflicts
+If ports are already in use:
 ```bash
-npm run dev          # Development mode
-npm run server       # Backend only
-npm run client       # Frontend only
-npm run build        # Production build
-npm run install-all  # Install all dependencies
-npm start           # Production mode
+# Find process using a port
+lsof -i :5000
+
+# Kill process
+kill -9 <PID>
+```
+
+### Python Dependencies
+If you encounter Python package installation issues:
+```bash
+# Use virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ## 🚀 Deployment
 
-### Backend Deployment
-1. Set environment variables
-2. Ensure MongoDB connection
-3. Run `npm start`
+For production deployment:
 
-### Frontend Deployment
-1. Build: `cd client && npm run build`
-2. Serve the `build` folder
-3. Configure proxy to backend API
+1. Update environment variables for production
+2. Enable HTTPS/SSL certificates
+3. Use process managers (PM2, systemd)
+4. Configure reverse proxy (Nginx)
+5. Set up monitoring (Prometheus, Grafana)
 
-### Full-Stack Deployment (Heroku example)
-```bash
-# Add buildpacks
-heroku buildpacks:add heroku/nodejs
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-static
+## 📝 License
 
-# Configure environment
-heroku config:set MONGODB_URI=your-mongodb-url
-heroku config:set JWT_SECRET=your-jwt-secret
+[Your License Here]
 
-# Deploy
-git push heroku main
-```
+## 🤝 Contributing
 
-## 🤝 Connection Features
-
-### User Connections
-- **Discovery**: Find users by name/username
-- **Requests**: Send connection invitations
-- **Management**: Accept, reject, or block connections
-- **Status**: Track connection states and history
-
-### Real-time Features
-- **Instant messaging**: Socket.IO powered chat
-- **Live notifications**: Real-time system alerts
-- **Presence indicators**: See who's online
-- **Activity feeds**: Live updates across the system
-
-### System Integrations
-- **External APIs**: Weather data integration
-- **Health monitoring**: Continuous system checks
-- **Analytics**: Real-time usage statistics
-- **Logging**: Comprehensive activity tracking
-
-## 🤝 Integration Features
-
-### External Service Connections
-- **HubSpot CRM**: Sync contacts, deals, and activities
-- **Slack Integration**: Real-time notifications and team updates
-- **Zapier Automation**: Connect with 5000+ apps and services
-- **Python Bridge**: Specialized processing and external APIs
-- **n8n Workflows**: Visual automation and advanced triggers
-
-### Automation Capabilities
-- **Zapier Workflows**: Trigger automations from app events
-- **Scheduled Syncing**: Automatic data synchronization
-- **Webhook Processing**: Handle incoming automation triggers
-- **Cross-Platform**: Connect different services seamlessly
-- **Real-time Updates**: Instant notifications across platforms
-
-## 🔐 Security
-
-- **JWT Authentication**: Secure token-based sessions
-- **Password hashing**: bcrypt with salt rounds
-- **Rate limiting**: API endpoint protection
-- **CORS configuration**: Cross-origin request security
-- **Input validation**: Comprehensive data sanitization
-- **Helmet.js**: Security headers and protections
-
-## 📈 Scaling Connections
-
-This architecture supports horizontal scaling:
-- **Database**: MongoDB replica sets
-- **Real-time**: Socket.IO clustering
-- **API**: Load balancer with multiple instances
-- **Frontend**: CDN distribution
-- **Cache**: Redis for session storage
-
-## 🆘 Troubleshooting
-
-### Common Connection Issues
-
-**Database Connection Failed:**
-```bash
-# Check MongoDB status
-mongod --version
-# Verify connection string in .env
-```
-
-**Socket.IO Not Connecting:**
-```bash
-# Check CORS configuration
-# Verify client URL in server settings
-# Check firewall/port settings
-```
-
-**API Authentication Errors:**
-```bash
-# Verify JWT_SECRET in .env
-# Check token in browser localStorage
-# Clear browser cache and cookies
-```
-
-## 🎯 Next Steps
-
-Extend the connections by adding:
-- **Redis caching** for improved performance
-- **Elasticsearch** for advanced search
-- **WebRTC** for video/audio calls
-- **Push notifications** for mobile devices
-- **GraphQL** for efficient data fetching
-- **More Zapier integrations** for expanded automation
-- **Advanced n8n workflows** for complex automations
-- **Microservices** architecture
-- **Docker** containerization
-- **Kubernetes** orchestration
-
----
-
-**Connect all the things!** 🚀
-
-For questions or contributions, please open an issue or submit a pull request.
-
-### Quick Integration Setup:
-- **Zapier**: See `zapier-integration-guide.md` for detailed setup
-- **HubSpot**: Check `hubspot-slack-setup.md` for configuration
-- **Slack**: Review `slack-integration-status.md` for troubleshooting
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
