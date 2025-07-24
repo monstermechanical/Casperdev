@@ -104,10 +104,49 @@ services:
       - mongodb
       - redis
 
+  # Ollama for Local LLaMA Models
+  ollama:
+    image: ollama/ollama:latest
+    container_name: casperdev-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - casperdev-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    # Uncomment these lines if you have NVIDIA GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # Pieces OS Backend
+  pieces-os:
+    image: pieces/pieces-os:latest
+    container_name: casperdev-pieces-os
+    restart: unless-stopped
+    ports:
+      - "1000:1000"  # Pieces OS API port
+    volumes:
+      - pieces_data:/app/data
+    networks:
+      - casperdev-network
+    environment:
+      - PIECES_OS_PORT=1000
+      - PIECES_OS_HOST=0.0.0.0
+
 volumes:
   mongodb_data:
   redis_data:
   n8n_data:
+  ollama_data:
+  pieces_data:
 
 networks:
   casperdev-network:

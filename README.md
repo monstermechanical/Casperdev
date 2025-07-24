@@ -1,6 +1,6 @@
 # Casperdev - Connect All
 
-A comprehensive full-stack application demonstrating complete system connectivity - from database to real-time communications, user connections, and external API integrations.
+A comprehensive full-stack application demonstrating complete system connectivity - from database to real-time communications, user connections, external API integrations, and AI-powered development tools.
 
 ## 🌐 System Architecture
 
@@ -20,19 +20,27 @@ This application showcases a fully connected ecosystem:
 - **React Query** - Efficient server state management
 - **React Router** - Client-side navigation
 
+### AI & Development Tools
+- **🦙 Ollama/LLaMA** - Local large language models
+- **🧩 Pieces** - AI-powered code snippet management
+- **🤖 Claude AI** - Advanced AI assistant via n8n workflows
+- **⚡ Cursor IDE** - Enhanced development experience
+
 ### Features Connected
 - 🔐 **User Authentication** - Secure login/registration
 - 👥 **User Connections** - Friend requests and networking
 - 💬 **Real-time Messaging** - Instant communication
 - 📊 **Live Analytics** - System health monitoring
 - 🔔 **Push Notifications** - Real-time alerts
-- 🌐 **External Integrations** - Weather API example
+- 🌐 **External Integrations** - HubSpot, Slack, Weather API
+- 🤖 **AI Assistant** - Local and cloud AI models
 - 📱 **Responsive Design** - Works on all devices
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v14 or higher)
+- Docker & Docker Compose
 - MongoDB (local or cloud instance)
 - npm or yarn
 
@@ -40,7 +48,7 @@ This application showcases a fully connected ecosystem:
 
 1. **Clone and install dependencies:**
 ```bash
-# Install backend dependencies
+# Install all dependencies
 npm run install-all
 
 # Or install separately:
@@ -56,17 +64,23 @@ cp .env.example .env
 # Edit .env with your configuration:
 # - MongoDB connection string
 # - JWT secret key
-# - External API keys (optional)
+# - API keys for integrations
+# - Ollama and Pieces configuration
 ```
 
-3. **Start the application:**
+3. **Start all services:**
 ```bash
-# Development mode (starts both frontend and backend)
-npm run dev
+# Start Docker services (MongoDB, Redis, n8n, Ollama, Pieces)
+docker-compose up -d
 
-# Or start separately:
-npm run server  # Backend on http://localhost:5000
-npm run client  # Frontend on http://localhost:3000
+# Start the application
+npm run dev
+```
+
+4. **Setup AI integrations:**
+```bash
+# Run the AI setup script
+./setup-llama-pieces.sh
 ```
 
 ## 🔧 Configuration
@@ -80,23 +94,24 @@ MONGODB_URI=mongodb://localhost:27017/casperdev
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/casperdev
 ```
 
+### AI & LLM Configuration
+```bash
+# Ollama (Local LLaMA models)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+# Pieces (Code snippet management)
+PIECES_OS_URL=http://localhost:1000
+PIECES_API_KEY=your-pieces-api-key
+
+# Claude AI (via n8n)
+ANTHROPIC_API_KEY=your-anthropic-api-key
+```
+
 ### Security Settings
 ```bash
 JWT_SECRET=your-super-secret-key-here
 JWT_EXPIRES_IN=7d
-```
-
-### External Services (Optional)
-```bash
-# Weather API
-WEATHER_API_KEY=your-weather-api-key
-
-# Email notifications
-SENDGRID_API_KEY=your-sendgrid-key
-
-# Cloud storage
-AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
 ```
 
 ## 📡 Connection Types
@@ -112,17 +127,17 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret
 - **Presence system**: Online/offline status tracking
 - **Event broadcasting**: System-wide notifications
 
-### 3. API Connections
-- **RESTful endpoints**: Full CRUD operations
-- **Authentication middleware**: JWT token validation
-- **Rate limiting**: DDoS protection
-- **Error handling**: Comprehensive error responses
+### 3. AI Connections
+- **Ollama**: Local LLaMA models for privacy-focused AI
+- **Pieces**: Intelligent code snippet management
+- **Claude**: Advanced AI assistant for complex tasks
+- **Model Management**: Download and switch between AI models
 
-### 4. User Connections
-- **Friend system**: Send/accept/reject requests
-- **Connection status**: Pending, accepted, blocked states
-- **Social features**: User discovery and networking
-- **Privacy controls**: Connection management
+### 4. External API Connections
+- **HubSpot**: CRM data synchronization
+- **Slack**: Team communication and notifications
+- **Weather API**: External data integration example
+- **n8n Workflows**: Automation and AI orchestration
 
 ## 🛠 API Endpoints
 
@@ -134,31 +149,46 @@ GET  /api/auth/me        # Verify connection
 POST /api/auth/logout    # Terminate session
 ```
 
-### User Management
+### AI Integrations
 ```bash
-GET    /api/users              # Discover users
-GET    /api/users/:id          # User profile
-POST   /api/users/:id/connect  # Send connection request
-PUT    /api/users/:id/connection # Accept/reject request
-GET    /api/users/:id/connections # User connections
+GET  /api/ai/status              # AI services status
+GET  /api/ai/ollama/test         # Test Ollama connection
+POST /api/ai/ollama/chat         # Chat with local LLaMA
+POST /api/ai/ollama/pull         # Download AI models
+GET  /api/ai/pieces/test         # Test Pieces connection
+POST /api/ai/pieces/save-snippet # Save code to Pieces
+GET  /api/ai/pieces/snippets     # Get saved snippets
+POST /api/ai/assist              # Universal AI assistant
 ```
 
-### Data & Messaging
+### External Integrations
 ```bash
-GET  /api/data/dashboard    # System overview
-GET  /api/data/posts        # Activity feed
-POST /api/data/posts        # Create post
-GET  /api/data/messages     # Message history
-POST /api/data/messages     # Send message
-GET  /api/data/notifications # User notifications
+GET  /api/integrations/status    # Integration status
+GET  /api/integrations/hubspot/test    # Test HubSpot
+GET  /api/integrations/slack/test      # Test Slack
+POST /api/integrations/hubspot/sync-contacts  # Sync contacts
+POST /api/integrations/hubspot/sync-deals     # Sync deals
 ```
 
-### System Health
-```bash
-GET /api/health             # Overall system status
-GET /api/data/health        # Detailed health check
-GET /api/data/external/weather # External API test
-```
+## 🤖 AI Features
+
+### Local AI with Ollama
+- **Privacy-focused**: All processing happens locally
+- **Multiple Models**: Support for LLaMA, CodeLLaMA, Mistral, and more
+- **Code Generation**: AI-powered code assistance
+- **Chat Interface**: Natural language interaction
+
+### Code Management with Pieces
+- **Smart Snippets**: AI-powered code snippet organization
+- **Language Detection**: Automatic programming language recognition
+- **Search & Discovery**: Find code snippets quickly
+- **Integration**: Seamless integration with development workflow
+
+### Claude AI Workflows
+- **Advanced Reasoning**: Complex problem-solving capabilities
+- **HubSpot Analysis**: AI-powered CRM insights
+- **Automated Workflows**: n8n integration for automation
+- **Multi-modal**: Text and data processing
 
 ## 🔄 Real-time Events
 
@@ -173,7 +203,7 @@ socket.emit('update-status', statusData)
 socket.on('receive-message', messageData)
 socket.on('user-joined', userId)
 socket.on('connection-request', requestData)
-socket.on('user-status-update', statusData)
+socket.on('ai-response', aiData)
 ```
 
 ## 📊 Monitoring Connections
@@ -182,15 +212,51 @@ socket.on('user-status-update', statusData)
 Access the **Connection Hub** (`/connections`) to monitor:
 - Database connection status
 - Real-time server connectivity
-- User connection statistics
-- External API health
+- AI service health (Ollama, Pieces, Claude)
+- External API status (HubSpot, Slack)
 - System performance metrics
 
-### Health Checks
-- **Endpoint**: `GET /api/health`
-- **Includes**: Database, cache, external APIs
-- **Auto-refresh**: Every 30 seconds
-- **Alerts**: Real-time notifications for issues
+### AI Assistant
+Access the **AI Assistant** (`/ai`) for:
+- Chat with local LLaMA models
+- Code snippet management with Pieces
+- Model downloading and management
+- Integration status monitoring
+
+## 🐳 Docker Services
+
+The application includes these containerized services:
+
+```yaml
+Services:
+  - MongoDB (27017)     # Database
+  - Redis (6379)        # Caching
+  - n8n (5678)         # Workflow automation
+  - Ollama (11434)     # Local LLaMA models
+  - Pieces OS (1000)   # Code snippet management
+  - Backend (5000)     # Express.js API
+  - Frontend (3000)    # React application
+```
+
+Start all services:
+```bash
+docker-compose up -d
+```
+
+## 🎯 Cursor IDE Integration
+
+The project includes comprehensive Cursor IDE configuration:
+
+### Features
+- **AI Code Completion**: Enhanced with project context
+- **Smart Suggestions**: Project-specific patterns
+- **Code Generation**: Follows established conventions
+- **Integration Aware**: Understands the full stack architecture
+
+### Configuration Files
+- `.cursorrules` - Project-specific AI assistant rules
+- `.vscode/settings.json` - IDE settings and preferences
+- **Auto-setup**: Run `./setup-llama-pieces.sh` for automatic configuration
 
 ## 🔧 Development
 
@@ -201,73 +267,60 @@ casperdev/
 │   ├── index.js           # Server entry point
 │   ├── models/            # Database schemas
 │   ├── routes/            # API endpoints
-│   ├── middleware/        # Authentication, etc.
-│   └── ...
+│   │   ├── ai-integrations.js  # AI/LLM endpoints
+│   │   └── integrations.js     # External API endpoints
+│   └── middleware/        # Authentication, etc.
 ├── client/                # Frontend application
 │   ├── src/
 │   │   ├── components/    # React components
-│   │   ├── contexts/      # State management
-│   │   └── ...
+│   │   │   └── AIAssistant.js   # AI chat interface
+│   │   └── contexts/      # State management
 │   └── package.json
-├── package.json           # Root dependencies
+├── docker-compose.yml     # All services
+├── .cursorrules          # Cursor IDE configuration
+├── setup-llama-pieces.sh # AI setup script
 └── .env.example          # Configuration template
 ```
 
 ### Available Scripts
 ```bash
-npm run dev          # Development mode
+npm run dev          # Development mode (all services)
 npm run server       # Backend only
 npm run client       # Frontend only
 npm run build        # Production build
 npm run install-all  # Install all dependencies
-npm start           # Production mode
+
+# AI & Docker
+docker-compose up -d      # Start all services
+./setup-llama-pieces.sh   # Setup AI integrations
+docker exec casperdev-ollama ollama pull llama3.2  # Download models
 ```
 
 ## 🚀 Deployment
 
-### Backend Deployment
-1. Set environment variables
-2. Ensure MongoDB connection
-3. Run `npm start`
-
-### Frontend Deployment
-1. Build: `cd client && npm run build`
-2. Serve the `build` folder
-3. Configure proxy to backend API
-
-### Full-Stack Deployment (Heroku example)
+### Development Deployment
 ```bash
-# Add buildpacks
-heroku buildpacks:add heroku/nodejs
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-static
+# Start all services
+docker-compose up -d
 
-# Configure environment
-heroku config:set MONGODB_URI=your-mongodb-url
-heroku config:set JWT_SECRET=your-jwt-secret
+# Run setup script
+./setup-llama-pieces.sh
 
-# Deploy
-git push heroku main
+# Start application
+npm run dev
 ```
 
-## 🤝 Connection Features
+### Production Deployment
+```bash
+# Build frontend
+cd client && npm run build
 
-### User Connections
-- **Discovery**: Find users by name/username
-- **Requests**: Send connection invitations
-- **Management**: Accept, reject, or block connections
-- **Status**: Track connection states and history
+# Set production environment
+export NODE_ENV=production
 
-### Real-time Features
-- **Instant messaging**: Socket.IO powered chat
-- **Live notifications**: Real-time system alerts
-- **Presence indicators**: See who's online
-- **Activity feeds**: Live updates across the system
-
-### System Integrations
-- **External APIs**: Weather data integration
-- **Health monitoring**: Continuous system checks
-- **Analytics**: Real-time usage statistics
-- **Logging**: Comprehensive activity tracking
+# Start with PM2 or similar
+npm start
+```
 
 ## 🔐 Security
 
@@ -275,57 +328,66 @@ git push heroku main
 - **Password hashing**: bcrypt with salt rounds
 - **Rate limiting**: API endpoint protection
 - **CORS configuration**: Cross-origin request security
-- **Input validation**: Comprehensive data sanitization
-- **Helmet.js**: Security headers and protections
+- **Local AI**: Privacy-focused local model processing
+- **Environment variables**: Secure configuration management
 
 ## 📈 Scaling Connections
 
 This architecture supports horizontal scaling:
 - **Database**: MongoDB replica sets
 - **Real-time**: Socket.IO clustering
+- **AI Services**: Ollama clustering for model serving
 - **API**: Load balancer with multiple instances
 - **Frontend**: CDN distribution
-- **Cache**: Redis for session storage
+- **Containers**: Kubernetes orchestration ready
 
 ## 🆘 Troubleshooting
 
-### Common Connection Issues
+### Common Issues
 
-**Database Connection Failed:**
+**Ollama Not Responding:**
 ```bash
-# Check MongoDB status
-mongod --version
-# Verify connection string in .env
+# Check if service is running
+docker ps | grep ollama
+
+# Check logs
+docker logs casperdev-ollama
+
+# Restart service
+docker-compose restart ollama
 ```
 
-**Socket.IO Not Connecting:**
+**Pieces OS Connection Failed:**
 ```bash
-# Check CORS configuration
-# Verify client URL in server settings
-# Check firewall/port settings
+# Check service status
+curl http://localhost:1000/health
+
+# Restart Pieces
+docker-compose restart pieces-os
 ```
 
-**API Authentication Errors:**
+**Model Download Issues:**
 ```bash
-# Verify JWT_SECRET in .env
-# Check token in browser localStorage
-# Clear browser cache and cookies
+# Check available space
+df -h
+
+# Download manually
+docker exec casperdev-ollama ollama pull llama3.2
 ```
 
 ## 🎯 Next Steps
 
 Extend the connections by adding:
-- **Redis caching** for improved performance
-- **Elasticsearch** for advanced search
-- **WebRTC** for video/audio calls
-- **Push notifications** for mobile devices
-- **GraphQL** for efficient data fetching
-- **Microservices** architecture
-- **Docker** containerization
-- **Kubernetes** orchestration
+- **🧠 More AI Models**: GPT-4, Gemini, local fine-tuned models
+- **🔍 Vector Search**: Embeddings for semantic code search
+- **📱 Mobile App**: React Native with AI features
+- **🌐 WebRTC**: Video calls with AI transcription
+- **⚡ Edge Computing**: Deploy AI models to edge devices
+- **🔗 Blockchain**: Decentralized AI model sharing
+- **📊 Analytics**: AI usage patterns and insights
 
 ---
 
-**Connect all the things!** 🚀
+**Connect all the things... with AI! 🚀🤖**
 
-For questions or contributions, please open an issue or submit a pull request.
+For questions, contributions, or AI-powered assistance, open an issue or chat with the built-in AI assistant.

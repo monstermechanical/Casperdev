@@ -1,0 +1,193 @@
+# Cursor IDE Rules for Casperdev Project
+
+## Project Context
+This is a full-stack Node.js application called "Casperdev - Connect All" with:
+- Backend: Express.js, MongoDB, Socket.IO, JWT authentication
+- Frontend: React 18, Material-UI, React Query
+- Docker: MongoDB, Redis, n8n, Ollama, Pieces OS
+- Integrations: HubSpot, Slack, Claude AI, Ollama/LLaMA, Pieces
+
+## Code Style & Standards
+
+### JavaScript/TypeScript
+- Use ES6+ features and async/await
+- Prefer const/let over var
+- Use arrow functions for callbacks
+- Always handle errors with try/catch
+- Use meaningful variable and function names
+- Follow camelCase for variables and functions
+- Use PascalCase for React components and classes
+
+### React
+- Use functional components with hooks
+- Prefer React Query for server state management
+- Use Material-UI components consistently
+- Implement proper error boundaries
+- Follow React best practices for performance
+
+### Node.js/Express
+- Use middleware for authentication and validation
+- Implement proper error handling and logging
+- Use environment variables for configuration
+- Follow RESTful API design principles
+- Implement rate limiting and security measures
+
+## File Structure Rules
+
+### Backend (`server/`)
+- `index.js` - Main server entry point
+- `routes/` - API route definitions
+- `models/` - MongoDB/Mongoose schemas
+- `middleware/` - Express middleware functions
+- `utils/` - Utility functions and helpers
+
+### Frontend (`client/src/`)
+- `components/` - React components
+- `contexts/` - React context providers
+- `hooks/` - Custom React hooks
+- `utils/` - Frontend utility functions
+- `styles/` - CSS and styling files
+
+## Integration Guidelines
+
+### Docker & Services
+- Use docker-compose for local development
+- Services: MongoDB (27017), Redis (6379), n8n (5678), Ollama (11434), Pieces (1000)
+- Always check service health before making API calls
+- Use environment variables for service URLs
+
+### AI & LLM Integration
+- Prefer Ollama for local LLaMA models
+- Use appropriate timeouts for AI API calls
+- Implement fallback strategies for AI failures
+- Cache AI responses when appropriate
+
+### Pieces Integration
+- Save useful code snippets automatically
+- Use proper language detection
+- Include meaningful titles and descriptions
+- Implement search functionality
+
+## API Design Rules
+
+### Authentication
+- All protected routes require JWT authentication
+- Use the `auth` middleware consistently
+- Return appropriate HTTP status codes
+- Implement proper error messages
+
+### Error Handling
+- Always return consistent error format:
+```json
+{
+  "status": "error",
+  "message": "Human readable message",
+  "error": "Technical error details"
+}
+```
+
+### Success Responses
+- Return consistent success format:
+```json
+{
+  "status": "success",
+  "message": "Success message",
+  "data": { ... }
+}
+```
+
+## Development Workflow
+
+### Environment Setup
+- Copy `.env.example` to `.env` and configure
+- Run `npm run install-all` for dependencies
+- Use `docker-compose up -d` for services
+- Run `npm run dev` for development
+
+### Testing Integration
+- Test each service independently
+- Use provided curl examples for API testing
+- Check integration status endpoints regularly
+- Monitor service logs for issues
+
+## Code Generation Guidelines
+
+### When creating new API endpoints:
+1. Add authentication middleware
+2. Implement proper validation
+3. Add comprehensive error handling
+4. Include integration status updates
+5. Document with comments
+6. Add to route index file
+
+### When creating React components:
+1. Use functional components with hooks
+2. Implement proper TypeScript types
+3. Use Material-UI components
+4. Add proper error boundaries
+5. Implement loading states
+6. Add responsive design
+
+### When adding new integrations:
+1. Add to docker-compose.yml if needed
+2. Add environment variables to .env.example
+3. Create dedicated route file
+4. Implement connection testing
+5. Add to integration status monitoring
+6. Update documentation
+
+## Security Considerations
+
+- Never commit API keys or secrets
+- Use environment variables for all configuration
+- Implement rate limiting on all endpoints
+- Validate all user inputs
+- Use HTTPS in production
+- Implement proper CORS configuration
+
+## Performance Guidelines
+
+- Use React Query for caching
+- Implement proper database indexing
+- Use compression middleware
+- Optimize images and assets
+- Implement connection pooling
+- Monitor memory usage
+
+## Documentation Standards
+
+- Comment complex logic thoroughly
+- Update README.md for new features
+- Document API endpoints with examples
+- Include setup instructions for new integrations
+- Maintain integration status documentation
+
+## Debugging & Logging
+
+- Use console.log sparingly in production
+- Implement proper logging levels
+- Use descriptive error messages
+- Include request IDs for tracing
+- Monitor integration health status
+
+## Cursor-Specific Features
+
+### Autocomplete Preferences
+- Prioritize project-specific patterns
+- Suggest appropriate Material-UI components
+- Recommend proper async/await patterns
+- Suggest integration status checks
+
+### Code Generation
+- Follow existing project structure
+- Use established naming conventions
+- Include proper error handling
+- Add authentication where needed
+- Follow API response patterns
+
+### AI Assistant Usage
+- Use for code explanations and optimization
+- Generate tests for new functionality
+- Help with integration documentation
+- Suggest performance improvements
+- Assist with debugging complex issues
