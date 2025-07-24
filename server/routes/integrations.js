@@ -4,6 +4,7 @@ const { Client } = require('@hubspot/api-client');
 const auth = require('../middleware/auth');
 const cron = require('node-cron');
 const axios = require('axios');
+const WebhookHistory = require('../models/WebhookHistory');
 
 const router = express.Router();
 
@@ -534,6 +535,9 @@ router.post('/zapier/trigger', auth, async (req, res) => {
 
 // Receive webhook from Zapier
 router.post('/zapier/webhook', async (req, res) => {
+  const startTime = Date.now();
+  let webhookRecord = null;
+  
   try {
     const webhookData = req.body;
     
@@ -542,70 +546,107 @@ router.post('/zapier/webhook', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
+    // Create webhook history record immediately
+    webhookRecord = new WebhookHistory({
+      action: webhookData.action || 'unknown',
+      data: webhookData,
+      source: {
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        referer: req.get('Referer')
+      },
+      category: 'incoming',
+      priority: webhookData.priority || 'normal'
+    });
+
     integrationStatus.zapier.lastWebhook = new Date().toISOString();
 
     // Process webhook based on action type
     let processedResult = {};
+    let processingSuccess = true;
+    let processingError = null;
     
-    switch (webhookData.action) {
-      case 'new_lead':
-        // Handle new lead from Zapier
-        processedResult = await processNewLead(webhookData.data);
-        break;
-      
-      case 'update_contact':
-        // Handle contact update from Zapier
-        processedResult = await processContactUpdate(webhookData.data);
-        break;
-      
-      case 'task_completed':
-        // Handle task completion from Zapier
-        processedResult = await processTaskCompletion(webhookData.data);
-        break;
-      
-      case 'send_notification':
-        // Send notification via other integrations
-        processedResult = await processSendNotification(webhookData.data);
-        break;
-      
-      default:
-        processedResult = {
-          action: 'logged',
-          message: 'Webhook received and logged',
-          data: webhookData
-        };
+    try {
+      switch (webhookData.action) {
+        case 'new_lead':
+          // Handle new lead from Zapier
+          processedResult = await processNewLead(webhookData.data);
+          break;
+        
+        case 'update_contact':
+          // Handle contact update from Zapier
+          processedResult = await processContactUpdate(webhookData.data);
+          break;
+        
+        case 'task_completed':
+          // Handle task completion from Zapier
+          processedResult = await processTaskCompletion(webhookData.data);
+          break;
+        
+        case 'send_notification':
+          // Send notification via other integrations
+          processedResult = await processSendNotification(webhookData.data);
+          break;
+        
+        default:
+          processedResult = {
+            action: 'logged',
+            message: 'Webhook received and logged',
+            data: webhookData
+          };
+      }
+    } catch (processingErr) {
+      processingSuccess = false;
+      processingError = processingErr.message;
+      processedResult = {
+        action: 'error',
+        error: processingErr.message,
+        data: webhookData
+      };
     }
 
-    // Store webhook data for monitoring
-    if (!global.zapierWebhooks) {
-      global.zapierWebhooks = [];
-    }
-    global.zapierWebhooks.push({
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
+    // Calculate processing time
+    const processingTime = Date.now() - startTime;
+
+    // Update webhook record with processing results
+    await webhookRecord.markProcessed(processedResult, processingSuccess, processingError, processingTime);
+    await webhookRecord.setResponse(processingSuccess ? 200 : 500, 
+      processingSuccess ? 'Webhook processed successfully' : 'Webhook processing failed');
+
+    // Save the webhook record
+    await webhookRecord.save();
+
+    const responseData = {
+      status: processingSuccess ? 'success' : 'error',
+      message: processingSuccess ? 'Webhook processed successfully' : 'Webhook processing failed',
       action: webhookData.action,
-      data: webhookData,
-      processed: processedResult
-    });
+      result: processedResult,
+      webhookId: webhookRecord.webhookId,
+      processingTime
+    };
 
-    // Keep only last 100 webhooks
-    if (global.zapierWebhooks.length > 100) {
-      global.zapierWebhooks.shift();
-    }
-
-    res.json({
-      status: 'success',
-      message: 'Webhook processed successfully',
-      action: webhookData.action,
-      result: processedResult
-    });
+    res.status(processingSuccess ? 200 : 500).json(responseData);
 
   } catch (error) {
     console.error('Zapier webhook processing error:', error);
+    
+    // If we have a webhook record, mark it as failed
+    if (webhookRecord) {
+      try {
+        const processingTime = Date.now() - startTime;
+        await webhookRecord.markProcessed(null, false, error.message, processingTime);
+        await webhookRecord.setResponse(500, 'Webhook storage/processing failed', { error: error.message });
+        await webhookRecord.save();
+      } catch (saveError) {
+        console.error('Failed to save webhook error state:', saveError);
+      }
+    }
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to process webhook',
-      error: error.message
+      error: error.message,
+      webhookId: webhookRecord?.webhookId
     });
   }
 });
@@ -680,21 +721,102 @@ router.post('/zapier/sync-hubspot', auth, async (req, res) => {
   }
 });
 
-// Get Zapier webhook history
+// Get Zapier webhook history with pagination
 router.get('/zapier/webhooks', auth, async (req, res) => {
   try {
-    const webhooks = global.zapierWebhooks || [];
+    const {
+      page = 1,
+      limit = 50,
+      action = null,
+      category = null,
+      success = null,
+      startDate = null,
+      endDate = null
+    } = req.query;
+
+    // Parse success filter
+    let successFilter = null;
+    if (success !== null && success !== undefined) {
+      successFilter = success === 'true' || success === true;
+    }
+
+    const options = {
+      page: parseInt(page),
+      limit: Math.min(parseInt(limit), 100), // Cap at 100 for performance
+      action,
+      category,
+      success: successFilter,
+      startDate,
+      endDate
+    };
+
+    const result = await WebhookHistory.getRecentWebhooks(options);
     
     res.json({
       status: 'success',
-      webhooks: webhooks.slice(-50), // Last 50 webhooks
-      total: webhooks.length
+      ...result,
+      filters: {
+        action,
+        category,
+        success: successFilter,
+        startDate,
+        endDate
+      }
     });
 
   } catch (error) {
+    console.error('Failed to retrieve webhook history:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve webhook history',
+      error: error.message
+    });
+  }
+});
+
+// Get Zapier webhook statistics
+router.get('/zapier/webhooks/stats', auth, async (req, res) => {
+  try {
+    const {
+      period = '24h',
+      startDate = null,
+      endDate = null
+    } = req.query;
+
+    // Validate period parameter
+    const validPeriods = ['1h', '24h', '7d', '30d'];
+    if (period && !validPeriods.includes(period)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid period. Must be one of: 1h, 24h, 7d, 30d',
+        validPeriods
+      });
+    }
+
+    const options = {
+      period,
+      startDate,
+      endDate
+    };
+
+    const statistics = await WebhookHistory.getStatistics(options);
+    
+    res.json({
+      status: 'success',
+      statistics,
+      query: {
+        period,
+        startDate,
+        endDate
+      },
+      generated: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Failed to retrieve webhook statistics:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve webhook statistics',
       error: error.message
     });
   }
