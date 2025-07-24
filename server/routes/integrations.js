@@ -4,6 +4,7 @@ const { Client } = require('@hubspot/api-client');
 const auth = require('../middleware/auth');
 const cron = require('node-cron');
 const axios = require('axios');
+const WebhookHistory = require('../models/WebhookHistory');
 
 const router = express.Router();
 
@@ -576,21 +577,24 @@ router.post('/zapier/webhook', async (req, res) => {
         };
     }
 
-    // Store webhook data for monitoring
-    if (!global.zapierWebhooks) {
-      global.zapierWebhooks = [];
-    }
-    global.zapierWebhooks.push({
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      action: webhookData.action,
-      data: webhookData,
-      processed: processedResult
-    });
+    // Store webhook data persistently
+    try {
+      await WebhookHistory.create({
+        webhookId: `zapier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        source: 'zapier',
+        action: webhookData.action || 'unknown',
+        data: webhookData,
+        processed: processedResult,
+        status: 'success'
+      });
 
-    // Keep only last 100 webhooks
-    if (global.zapierWebhooks.length > 100) {
-      global.zapierWebhooks.shift();
+      // Periodic cleanup to maintain reasonable database size (async, non-blocking)
+      WebhookHistory.cleanupOldWebhooks('zapier', 1000).catch(err => {
+        console.warn('Webhook cleanup warning:', err.message);
+      });
+    } catch (dbError) {
+      console.error('Failed to store webhook history:', dbError);
+      // Continue processing even if storage fails
     }
 
     res.json({
@@ -602,6 +606,22 @@ router.post('/zapier/webhook', async (req, res) => {
 
   } catch (error) {
     console.error('Zapier webhook processing error:', error);
+    
+    // Store failed webhook attempt
+    try {
+      await WebhookHistory.create({
+        webhookId: `zapier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        source: 'zapier',
+        action: req.body?.action || 'unknown',
+        data: req.body || {},
+        processed: { error: 'Processing failed' },
+        status: 'error',
+        errorMessage: error.message
+      });
+    } catch (dbError) {
+      console.error('Failed to store failed webhook history:', dbError);
+    }
+    
     res.status(500).json({
       status: 'error',
       message: 'Failed to process webhook',
@@ -683,18 +703,49 @@ router.post('/zapier/sync-hubspot', auth, async (req, res) => {
 // Get Zapier webhook history
 router.get('/zapier/webhooks', auth, async (req, res) => {
   try {
-    const webhooks = global.zapierWebhooks || [];
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const [webhooks, total] = await Promise.all([
+      WebhookHistory.getRecentWebhooks('zapier', limit, offset),
+      WebhookHistory.countDocuments({ source: 'zapier' })
+    ]);
     
     res.json({
       status: 'success',
-      webhooks: webhooks.slice(-50), // Last 50 webhooks
-      total: webhooks.length
+      webhooks: webhooks,
+      total: total,
+      limit: limit,
+      offset: offset,
+      hasMore: offset + limit < total
     });
 
   } catch (error) {
+    console.error('Failed to retrieve webhook history:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve webhook history',
+      error: error.message
+    });
+  }
+});
+
+// Get Zapier webhook statistics
+router.get('/zapier/webhooks/stats', auth, async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 7;
+    const stats = await WebhookHistory.getStats('zapier', days);
+    
+    res.json({
+      status: 'success',
+      stats: stats
+    });
+
+  } catch (error) {
+    console.error('Failed to retrieve webhook statistics:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve webhook statistics',
       error: error.message
     });
   }
