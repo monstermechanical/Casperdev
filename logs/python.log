@@ -1,6 +1,6 @@
-INFO:     Will watch for changes in these directories: ['/workspace/python-upwork-service']
+INFO:     Will watch for changes in these directories: ['/workspace']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [4736] using StatReload
+INFO:     Started reloader process [5754] using StatReload
 
 🐍 Python Upwork Agent Starting...
 ================================
@@ -21,14 +21,8 @@ API Endpoints:
 Agent Communication Ready!
 Connect to orchestrator: http://localhost:4000
 
-INFO:     Started server process [4740]
+INFO:     Started server process [5767]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:httpx:HTTP Request: GET http://localhost:5000/api/health "HTTP/1.1 200 OK"
-INFO:     127.0.0.1:33222 - "GET /health HTTP/1.1" 200 OK
-INFO:app:📨 Message received from test: ping
-INFO:     127.0.0.1:60418 - "POST /api/receive-message HTTP/1.1" 200 OK
-INFO:app:📨 Message received from orchestrator: search-jobs
-INFO:     127.0.0.1:53302 - "POST /api/receive-message HTTP/1.1" 200 OK
-INFO:app:📨 Message received from backend: search-jobs
-INFO:     127.0.0.1:53862 - "POST /api/receive-message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38810 - "GET /health HTTP/1.1" 200 OK
