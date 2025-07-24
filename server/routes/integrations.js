@@ -11,6 +11,10 @@ const router = express.Router();
 const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN });
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
+// Zapier configuration
+const ZAPIER_WEBHOOK_URL = process.env.ZAPIER_WEBHOOK_URL;
+const ZAPIER_API_KEY = process.env.ZAPIER_API_KEY;
+
 // Integration status storage
 let integrationStatus = {
   hubspot: {
@@ -21,6 +25,12 @@ let integrationStatus = {
   slack: {
     connected: false,
     lastSync: null,
+    error: null
+  },
+  zapier: {
+    connected: false,
+    lastWebhook: null,
+    lastTrigger: null,
     error: null
   }
 };
@@ -405,6 +415,430 @@ async function syncDealsToSlack(channel) {
     integrationStatus.hubspot.lastSync = new Date().toISOString();
   } catch (error) {
     console.error('Auto-sync deals error:', error);
+  }
+}
+
+// Zapier Integration Endpoints
+
+// Test Zapier webhook connection
+router.get('/zapier/test', auth, async (req, res) => {
+  try {
+    if (!ZAPIER_WEBHOOK_URL) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Zapier webhook URL not configured',
+        suggestion: 'Set ZAPIER_WEBHOOK_URL in environment variables'
+      });
+    }
+
+    // Send test payload to Zapier
+    const testPayload = {
+      test: true,
+      message: 'Zapier connection test from CasperDev',
+      timestamp: new Date().toISOString(),
+      source: 'casperdev-integration-test'
+    };
+
+    const response = await axios.post(ZAPIER_WEBHOOK_URL, testPayload, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    integrationStatus.zapier.connected = true;
+    integrationStatus.zapier.lastTrigger = new Date().toISOString();
+    integrationStatus.zapier.error = null;
+
+    res.json({
+      status: 'connected',
+      message: 'Zapier webhook connection successful',
+      webhook_response: {
+        status: response.status,
+        statusText: response.statusText
+      },
+      test_payload: testPayload
+    });
+
+  } catch (error) {
+    integrationStatus.zapier.connected = false;
+    integrationStatus.zapier.error = error.message;
+
+    console.error('Zapier test error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Zapier webhook connection failed',
+      error: error.message,
+      suggestion: 'Check ZAPIER_WEBHOOK_URL and ensure the webhook is active'
+    });
+  }
+});
+
+// Trigger Zapier workflow with custom data
+router.post('/zapier/trigger', auth, async (req, res) => {
+  try {
+    const { action, data, zap_name } = req.body;
+
+    if (!ZAPIER_WEBHOOK_URL) {
+      return res.status(400).json({
+        error: 'Zapier webhook URL not configured'
+      });
+    }
+
+    if (!action) {
+      return res.status(400).json({
+        error: 'Action is required'
+      });
+    }
+
+    const zapierPayload = {
+      action,
+      data: data || {},
+      zap_name: zap_name || 'CasperDev Trigger',
+      timestamp: new Date().toISOString(),
+      source: 'casperdev-backend',
+      triggered_by: req.user.id || 'system'
+    };
+
+    console.log(`🔗 Triggering Zapier workflow: ${action}`);
+
+    const response = await axios.post(ZAPIER_WEBHOOK_URL, zapierPayload, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    });
+
+    integrationStatus.zapier.lastTrigger = new Date().toISOString();
+
+    res.json({
+      status: 'success',
+      message: 'Zapier workflow triggered successfully',
+      action,
+      webhook_response: {
+        status: response.status,
+        statusText: response.statusText
+      },
+      payload: zapierPayload
+    });
+
+  } catch (error) {
+    console.error('Zapier trigger error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to trigger Zapier workflow',
+      error: error.message
+    });
+  }
+});
+
+// Receive webhook from Zapier
+router.post('/zapier/webhook', async (req, res) => {
+  try {
+    const webhookData = req.body;
+    
+    console.log('📥 Received Zapier webhook:', {
+      action: webhookData.action || 'unknown',
+      timestamp: new Date().toISOString()
+    });
+
+    integrationStatus.zapier.lastWebhook = new Date().toISOString();
+
+    // Process webhook based on action type
+    let processedResult = {};
+    
+    switch (webhookData.action) {
+      case 'new_lead':
+        // Handle new lead from Zapier
+        processedResult = await processNewLead(webhookData.data);
+        break;
+      
+      case 'update_contact':
+        // Handle contact update from Zapier
+        processedResult = await processContactUpdate(webhookData.data);
+        break;
+      
+      case 'task_completed':
+        // Handle task completion from Zapier
+        processedResult = await processTaskCompletion(webhookData.data);
+        break;
+      
+      case 'send_notification':
+        // Send notification via other integrations
+        processedResult = await processSendNotification(webhookData.data);
+        break;
+      
+      default:
+        processedResult = {
+          action: 'logged',
+          message: 'Webhook received and logged',
+          data: webhookData
+        };
+    }
+
+    // Store webhook data for monitoring
+    if (!global.zapierWebhooks) {
+      global.zapierWebhooks = [];
+    }
+    global.zapierWebhooks.push({
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      action: webhookData.action,
+      data: webhookData,
+      processed: processedResult
+    });
+
+    // Keep only last 100 webhooks
+    if (global.zapierWebhooks.length > 100) {
+      global.zapierWebhooks.shift();
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Webhook processed successfully',
+      action: webhookData.action,
+      result: processedResult
+    });
+
+  } catch (error) {
+    console.error('Zapier webhook processing error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to process webhook',
+      error: error.message
+    });
+  }
+});
+
+// Sync data to Zapier
+router.post('/zapier/sync-hubspot', auth, async (req, res) => {
+  try {
+    const { type = 'contacts', limit = 10 } = req.body;
+
+    if (!ZAPIER_WEBHOOK_URL) {
+      return res.status(400).json({
+        error: 'Zapier webhook URL not configured'
+      });
+    }
+
+    let hubspotData = [];
+    
+    if (type === 'contacts') {
+      const contactsResponse = await hubspotClient.crm.contacts.basicApi.getPage(
+        limit,
+        undefined,
+        ['firstname', 'lastname', 'email', 'phone', 'company', 'hs_lead_status'],
+        undefined,
+        undefined,
+        'createdate'
+      );
+      hubspotData = contactsResponse.results;
+    } else if (type === 'deals') {
+      const dealsResponse = await hubspotClient.crm.deals.basicApi.getPage(
+        limit,
+        undefined,
+        ['dealname', 'amount', 'closedate', 'dealstage'],
+        undefined,
+        undefined,
+        'createdate'
+      );
+      hubspotData = dealsResponse.results;
+    }
+
+    // Send to Zapier
+    const zapierPayload = {
+      action: `hubspot_${type}_sync`,
+      data: hubspotData,
+      count: hubspotData.length,
+      timestamp: new Date().toISOString(),
+      source: 'casperdev-hubspot-sync'
+    };
+
+    await axios.post(ZAPIER_WEBHOOK_URL, zapierPayload, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    });
+
+    integrationStatus.zapier.lastTrigger = new Date().toISOString();
+
+    res.json({
+      status: 'success',
+      message: `HubSpot ${type} synced to Zapier successfully`,
+      synced: hubspotData.length,
+      type
+    });
+
+  } catch (error) {
+    console.error('Zapier HubSpot sync error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to sync HubSpot data to Zapier',
+      error: error.message
+    });
+  }
+});
+
+// Get Zapier webhook history
+router.get('/zapier/webhooks', auth, async (req, res) => {
+  try {
+    const webhooks = global.zapierWebhooks || [];
+    
+    res.json({
+      status: 'success',
+      webhooks: webhooks.slice(-50), // Last 50 webhooks
+      total: webhooks.length
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve webhook history',
+      error: error.message
+    });
+  }
+});
+
+// Auto-trigger Zapier workflows
+router.post('/zapier/auto-trigger/enable', auth, async (req, res) => {
+  try {
+    const { enabled = true, triggers = [], schedule = '0 */2 * * *' } = req.body;
+
+    if (enabled) {
+      // Schedule automatic Zapier triggers every 2 hours by default
+      cron.schedule(schedule, async () => {
+        console.log('🔄 Running scheduled Zapier triggers...');
+        
+        for (const trigger of triggers) {
+          try {
+            if (trigger.type === 'hubspot_contacts' && ZAPIER_WEBHOOK_URL) {
+              await axios.post(ZAPIER_WEBHOOK_URL, {
+                action: 'scheduled_hubspot_contacts',
+                timestamp: new Date().toISOString(),
+                source: 'casperdev-auto-trigger'
+              });
+            }
+            
+            if (trigger.type === 'system_health' && ZAPIER_WEBHOOK_URL) {
+              await axios.post(ZAPIER_WEBHOOK_URL, {
+                action: 'system_health_check',
+                data: {
+                  status: 'running',
+                  integrations: integrationStatus,
+                  uptime: process.uptime()
+                },
+                timestamp: new Date().toISOString(),
+                source: 'casperdev-health-check'
+              });
+            }
+          } catch (error) {
+            console.error(`Auto-trigger error for ${trigger.type}:`, error);
+          }
+        }
+      });
+
+      console.log(`🔄 Zapier auto-triggers enabled with schedule: ${schedule}`);
+    }
+
+    res.json({
+      status: 'success',
+      message: enabled ? 'Zapier auto-triggers enabled' : 'Zapier auto-triggers disabled',
+      schedule,
+      triggers: triggers.length
+    });
+
+  } catch (error) {
+    console.error('Zapier auto-trigger setup error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to setup auto-triggers',
+      error: error.message
+    });
+  }
+});
+
+// Helper functions for webhook processing
+async function processNewLead(data) {
+  try {
+    // Example: Create lead in HubSpot when Zapier sends new lead
+    if (hubspotClient && data.email) {
+      await hubspotClient.crm.contacts.basicApi.create({
+        properties: {
+          email: data.email,
+          firstname: data.firstName || '',
+          lastname: data.lastName || '',
+          hs_lead_status: 'NEW',
+          lead_source: 'Zapier Integration'
+        }
+      });
+      
+      return { action: 'created_hubspot_contact', email: data.email };
+    }
+    
+    return { action: 'logged_new_lead', data };
+  } catch (error) {
+    console.error('Process new lead error:', error);
+    return { action: 'error', error: error.message };
+  }
+}
+
+async function processContactUpdate(data) {
+  try {
+    // Example: Update contact in HubSpot
+    if (hubspotClient && data.contactId) {
+      await hubspotClient.crm.contacts.basicApi.update(data.contactId, {
+        properties: data.properties || {}
+      });
+      
+      return { action: 'updated_hubspot_contact', contactId: data.contactId };
+    }
+    
+    return { action: 'logged_contact_update', data };
+  } catch (error) {
+    console.error('Process contact update error:', error);
+    return { action: 'error', error: error.message };
+  }
+}
+
+async function processTaskCompletion(data) {
+  try {
+    // Example: Send Slack notification for completed tasks
+    if (slackClient && data.taskName) {
+      await slackClient.chat.postMessage({
+        channel: process.env.SLACK_DEFAULT_CHANNEL || '#general',
+        text: `✅ Task completed via Zapier: *${data.taskName}*\n\nDetails: ${data.description || 'No additional details'}`,
+        mrkdwn: true
+      });
+      
+      return { action: 'sent_slack_notification', task: data.taskName };
+    }
+    
+    return { action: 'logged_task_completion', data };
+  } catch (error) {
+    console.error('Process task completion error:', error);
+    return { action: 'error', error: error.message };
+  }
+}
+
+async function processSendNotification(data) {
+  try {
+    const results = [];
+    
+    // Send to Slack if configured
+    if (slackClient && data.message) {
+      await slackClient.chat.postMessage({
+        channel: data.channel || process.env.SLACK_DEFAULT_CHANNEL || '#general',
+        text: `🔔 Zapier Notification: ${data.message}`,
+        mrkdwn: true
+      });
+      results.push('slack_sent');
+    }
+    
+    return { action: 'notifications_sent', results };
+  } catch (error) {
+    console.error('Process send notification error:', error);
+    return { action: 'error', error: error.message };
   }
 }
 
